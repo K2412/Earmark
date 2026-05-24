@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "Earmark",
+  "project_id": "e70a54b3-376d-408a-b940-b793dd80f460"
+}
