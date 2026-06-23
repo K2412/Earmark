@@ -3,6 +3,7 @@
 use App\Actions\Buckets\CreateBucket;
 use App\Livewire\Forms\BucketForm;
 use App\Models\Bucket;
+use App\Services\Budget\BudgetService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -26,6 +27,31 @@ new #[Title('Buckets')] class extends Component {
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
+    }
+
+    /**
+     * Per-bucket envelope status keyed by bucket id:
+     *   ['available' => int, 'needed' => int, 'underfunded' => bool, 'negative' => bool]
+     */
+    #[Computed]
+    public function status()
+    {
+        $service = app(BudgetService::class);
+        $year = now()->year;
+        $month = now()->month;
+
+        return $this->buckets->mapWithKeys(function (Bucket $bucket) use ($service, $year, $month) {
+            $available = $service->availableForMonth($bucket, $year, $month);
+            $needed = $service->obligationForMonth($bucket, $year, $month)
+                + $service->rolledForwardObligation($bucket, $year, $month);
+
+            return [$bucket->id => [
+                'available' => $available,
+                'needed' => $needed,
+                'underfunded' => $available < $needed,
+                'negative' => $available < 0,
+            ]];
+        });
     }
 
     public function save(CreateBucket $action): void
@@ -79,6 +105,7 @@ new #[Title('Buckets')] class extends Component {
                 <flux:table.column>{{ __('Name') }}</flux:table.column>
                 <flux:table.column>{{ __('Kind') }}</flux:table.column>
                 <flux:table.column align="end">{{ __('Monthly obligation') }}</flux:table.column>
+                <flux:table.column align="end">{{ __('Available') }}</flux:table.column>
                 <flux:table.column align="end">{{ __('Target') }}</flux:table.column>
                 <flux:table.column></flux:table.column>
             </flux:table.columns>
@@ -93,6 +120,15 @@ new #[Title('Buckets')] class extends Component {
                         </flux:table.cell>
                         <flux:table.cell>{{ $bucket->kind }}</flux:table.cell>
                         <flux:table.cell align="end">{{ number_format($bucket->monthly_obligation / 100, 2) }}</flux:table.cell>
+                        @php($s = $this->status[$bucket->id] ?? null)
+                        <flux:table.cell align="end" class="@if ($s && $s['negative']) text-red-600 font-semibold @elseif ($s && $s['underfunded']) text-amber-600 @endif">
+                            {{ $s ? number_format($s['available'] / 100, 2) : '—' }}
+                            @if ($s && $s['negative'])
+                                <flux:badge size="sm" color="red">{{ __('Negative') }}</flux:badge>
+                            @elseif ($s && $s['underfunded'])
+                                <flux:badge size="sm" color="amber">{{ __('Underfunded') }}</flux:badge>
+                            @endif
+                        </flux:table.cell>
                         <flux:table.cell align="end">
                             {{ $bucket->target_amount !== null ? number_format($bucket->target_amount / 100, 2) : '—' }}
                         </flux:table.cell>

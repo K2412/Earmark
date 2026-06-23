@@ -25,6 +25,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('/household/categories', 'pages::household.categories.index')->name('household.categories.index');
     Route::livewire('/household/buckets', 'pages::household.buckets.index')->name('household.buckets.index');
     Route::livewire('/household/transactions', 'pages::household.transactions.index')->name('household.transactions.index');
+    Route::livewire('/household/members', 'pages::household.members.index')->name('household.members.index');
+    Route::livewire('/household/plan', 'pages::household.plan.index')->name('household.plan.index');
 });
 
 require __DIR__.'/settings.php';

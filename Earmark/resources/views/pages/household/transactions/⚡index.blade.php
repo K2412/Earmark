@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\Bucket;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Services\Payee\PayeeRuleService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -15,9 +16,37 @@ new #[Title('Transactions')] class extends Component {
 
     public bool $showCreateModal = false;
 
+    public ?string $suggestedRuleId = null;
+
     public function mount(): void
     {
         $this->form->defaults();
+    }
+
+    /**
+     * Fires when the payee field blurs (wire:model.live.blur). Looks up the
+     * matching PayeeRule and prefills category + bucket — only if the user
+     * hasn't already chosen one (so we don't overwrite their selections).
+     */
+    public function updatedFormPayee(string $value): void
+    {
+        $match = app(PayeeRuleService::class)->suggest($value);
+
+        if ($match['rule'] === null) {
+            $this->suggestedRuleId = null;
+
+            return;
+        }
+
+        $this->suggestedRuleId = $match['rule']->id;
+
+        if (empty($this->form->category_id) && $match['category_id']) {
+            $this->form->category_id = $match['category_id'];
+        }
+
+        if (empty($this->form->bucket_id) && $match['bucket_id']) {
+            $this->form->bucket_id = $match['bucket_id'];
+        }
     }
 
     #[Computed]
@@ -57,6 +86,7 @@ new #[Title('Transactions')] class extends Component {
 
         $this->form->defaults();
         $this->showCreateModal = false;
+        $this->suggestedRuleId = null;
         unset($this->transactions);
     }
 }; ?>
@@ -112,7 +142,10 @@ new #[Title('Transactions')] class extends Component {
                 @endforeach
             </flux:select>
 
-            <flux:input wire:model="form.payee" :label="__('Payee')" placeholder="Loblaws" required />
+            <flux:input wire:model.live.blur="form.payee" :label="__('Payee')" placeholder="Loblaws" required />
+            @if ($suggestedRuleId)
+                <flux:text size="sm" class="text-zinc-500">{{ __('Prefilled from payee rule (override below if needed).') }}</flux:text>
+            @endif
 
             <flux:select wire:model="form.category_id" :label="__('Category')">
                 <flux:select.option value="">{{ __('(none)') }}</flux:select.option>

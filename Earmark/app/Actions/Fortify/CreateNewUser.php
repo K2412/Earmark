@@ -5,6 +5,8 @@ namespace App\Actions\Fortify;
 use App\Actions\Households\CreateHousehold;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
+use App\Models\HouseholdInvitation;
+use App\Models\HouseholdMembership;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -36,7 +38,27 @@ class CreateNewUser implements CreatesNewUsers
                 'password' => $input['password'],
             ]);
 
-            $this->createHousehold->handle($user, "{$input['name']}'s Household");
+            $pendingInviteCode = session()->pull('pending_invite');
+            $invitation = $pendingInviteCode
+                ? HouseholdInvitation::query()
+                    ->where('code', $pendingInviteCode)
+                    ->whereNull('accepted_at')
+                    ->first()
+                : null;
+
+            if ($invitation) {
+                // Invited user joins the inviting household with the invitation's role.
+                HouseholdMembership::create([
+                    'household_id' => $invitation->household_id,
+                    'user_id' => $user->id,
+                    'role' => $invitation->role,
+                ]);
+                $invitation->update(['accepted_at' => now()]);
+            } else {
+                // Fallback: create a fresh household for the user (mostly for tests
+                // that bypass the invite flow).
+                $this->createHousehold->handle($user, "{$input['name']}'s Household");
+            }
 
             return $user;
         });

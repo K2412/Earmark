@@ -3,6 +3,7 @@
 use App\Models\Account;
 use App\Models\Bucket;
 use App\Models\Category;
+use App\Models\PayeeRule;
 use App\Models\Transaction;
 use App\Models\User;
 use Livewire\Livewire;
@@ -71,4 +72,41 @@ test('create transaction fails for unknown account', function () {
 test('guests are redirected from the transactions page', function () {
     $this->get(route('household.transactions.index'))
         ->assertRedirect(route('login'));
+});
+
+test('payee blur prefills category + bucket from matching PayeeRule', function () {
+    $user = User::factory()->create();
+    $account = Account::factory()->create();
+    $category = Category::factory()->create();
+    $bucket = Bucket::factory()->create();
+
+    PayeeRule::factory()->create([
+        'pattern' => 'loblaws',
+        'category_id' => $category->id,
+        'bucket_id' => $bucket->id,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test('pages::household.transactions.index')
+        ->set('form.payee', 'LOBLAWS #5025')
+        ->assertSet('form.category_id', $category->id)
+        ->assertSet('form.bucket_id', $bucket->id)
+        ->assertSet('suggestedRuleId', PayeeRule::first()->id);
+});
+
+test('payee prefill does not overwrite user-selected category', function () {
+    $user = User::factory()->create();
+    $ruleCategory = Category::factory()->create();
+    $userCategory = Category::factory()->create();
+
+    PayeeRule::factory()->create([
+        'pattern' => 'shell',
+        'category_id' => $ruleCategory->id,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test('pages::household.transactions.index')
+        ->set('form.category_id', $userCategory->id)
+        ->set('form.payee', 'Shell Gas Station')
+        ->assertSet('form.category_id', $userCategory->id);
 });
