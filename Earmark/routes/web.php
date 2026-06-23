@@ -21,6 +21,10 @@ Route::middleware(['guest', EnsureValidInvite::class])->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('/household/dashboard', 'pages::household.dashboard')->name('dashboard');
+    Route::livewire('/household/accounts', 'pages::household.accounts.index')->name('household.accounts.index');
+    Route::livewire('/household/categories', 'pages::household.categories.index')->name('household.categories.index');
+    Route::livewire('/household/buckets', 'pages::household.buckets.index')->name('household.buckets.index');
+    Route::livewire('/household/transactions', 'pages::household.transactions.index')->name('household.transactions.index');
 });
 
 require __DIR__.'/settings.php';
