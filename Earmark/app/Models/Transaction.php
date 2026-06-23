@@ -31,6 +31,33 @@ class Transaction extends Model
         'created_by_user_id',
     ];
 
+    /**
+     * When one half of a transfer pair is deleted, take the matching half
+     * with it — they should always travel together. Null out the sibling's
+     * transfer_pair_id before deleting so its own deleting hook doesn't
+     * re-enter and infinite-loop.
+     */
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::deleting(function (Transaction $transaction) {
+            if (! $transaction->transfer_pair_id) {
+                return;
+            }
+
+            static::query()
+                ->where('transfer_pair_id', $transaction->transfer_pair_id)
+                ->where('id', '!=', $transaction->id)
+                ->get()
+                ->each(function (Transaction $sibling) {
+                    $sibling->transfer_pair_id = null;
+                    $sibling->saveQuietly();
+                    $sibling->delete();
+                });
+        });
+    }
+
     protected function casts(): array
     {
         return [
