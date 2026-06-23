@@ -1,0 +1,25 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /var/www/html/database/database.sqlite
+      PHP_INI_UPLOAD_TMP_DIR: /tmp
+    ports:
+      - "8000:8000"
+    volumes:
+      - earmark_sqlite:/var/www/html/database
+      - earmark_storage:/var/www/html/storage
+    tmpfs:
+      - /tmp:size=128M
+
+volumes:
+  earmark_sqlite:
+  earmark_storage:
