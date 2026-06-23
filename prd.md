@@ -1,5 +1,5 @@
 # Household Budget App — Product Requirements Document
-**Stack: Laravel + Inertia.js + Svelte 5**
+**Stack: Laravel 13 + Livewire 4 + Flux UI + Alpine.js**
 
 ## 1. Context
 

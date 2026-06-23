@@ -1,26 +1,32 @@
 # Earmark
 
-A self-hosted, single-household YNAB replacement. Zero-based budgeting, PDF statement ingestion, payee rule engine, two-user shared access — no Plaid required, no monthly fee.
+A self-hosted, single-household YNAB replacement. Zero-based budgeting, browser-side PDF statement parsing, payee rule engine, two-user shared access — no Plaid required, no monthly fee.
 
-Two parallel implementations live in this repo:
+## Stack
 
-| Project | Stack | Role |
-|---|---|---|
-| `Earmark/` | Laravel 13 + Livewire 4 + Flux UI + Alpine.js | Primary target |
-| `Earmark-web/` | Laravel + Inertia.js + Svelte 5 + TypeScript | Reference implementation |
-| `Earmark-parser/` | Python (FastAPI + pdfplumber + Docling) | PDF parser used by `Earmark-web`. Replaced in `Earmark/` by browser-side [`@llamaindex/liteparse`](https://www.llamaindex.ai/blog/liteparse-v2-0-runs-everywhere) |
-
-The same product, the same domain model — exercised against two stacks to compare and refine the Livewire architecture.
+- **Laravel 13** + **PHP 8.4** backend
+- **Livewire 4** thin full-page components (`pages::` namespace, `⚡` SFC convention)
+- **Flux UI v2** component primitives
+- **Alpine.js** for ephemeral client state
+- **`lorisleiva/laravel-actions`** for bespoke domain operations
+- **`@llamaindex/liteparse-wasm`** for browser-side PDF parsing (no Python sidecar)
+- **Tailwind CSS v4**, **Pest 4** tests, **Laravel Pint** formatter
 
 ## Repo Layout
 
 ```
 .
-├── Earmark/                 # Livewire reimplementation (active)
-├── Earmark-web/             # Inertia + Svelte reference implementation
-├── Earmark-parser/          # Python PDF parser (Earmark-web only)
-├── docs/                    # Top-level docs (architecture, PRD)
-├── docker-compose.yml       # Multi-service dev/prod compose
+├── Earmark/                 # The application (Livewire)
+│   ├── app/                 # Models, Actions, Services, Policies, Livewire Forms, Middleware
+│   ├── resources/
+│   │   ├── views/pages/     # Full-page Livewire SFCs (pages:: namespace)
+│   │   ├── views/components/  # Shared Blade + Livewire components
+│   │   └── js/alpine/       # Alpine.data() definitions (incl. liteparse)
+│   ├── database/            # Migrations, factories, seeders
+│   ├── routes/              # web.php, settings.php, console.php
+│   ├── tests/               # Pest tests (Feature, Unit)
+│   ├── Dockerfile + docker-compose.yml + docker/entrypoint.sh
+│   └── docs/architecture-livewire.md
 ├── prd.md                   # Product requirements
 ├── AGENTS.MD                # Agent collaboration guide
 ├── CLAUDE.md                # Claude Code project instructions
@@ -28,8 +34,6 @@ The same product, the same domain model — exercised against two stacks to comp
 ```
 
 ## Getting Started
-
-### Earmark (Livewire 4)
 
 ```bash
 cd Earmark
@@ -39,56 +43,42 @@ cp .env.example .env
 php artisan key:generate
 touch database/database.sqlite
 php artisan migrate
+php artisan db:seed --class=BucketSeeder
+
+# Bootstrap the first owner (registration is invite-only)
+php artisan earmark:create-first-user \
+    --email=you@example.com \
+    --name="Your Name" \
+    --password='your-secret'
+
 npm run dev          # one terminal
 php artisan serve    # another terminal
 ```
 
-Open `http://localhost:8000`. First-time registration auto-creates a single household and attaches the new user as Owner.
+Open `http://localhost:8000`, log in, and start adding accounts/categories/buckets at `/household/dashboard`.
 
-### Earmark-web (Inertia + Svelte)
-
-```bash
-cd Earmark-web
-composer install
-npm install
-cp .env.example .env
-php artisan key:generate
-touch database/database.sqlite
-php artisan migrate
-npm run dev          # one terminal
-php artisan serve    # another terminal
-```
-
-### Earmark-parser (Python service, optional)
+### Docker
 
 ```bash
-cd Earmark-parser
-pip install -e .
-uvicorn earmark_parser.app:app --reload --port 8001
-```
-
-The parser service is only required when running `Earmark-web` end-to-end. `Earmark/` parses PDFs in the browser via `@llamaindex/liteparse` — no Python service required.
-
-### Full stack via Docker Compose
-
-```bash
+cd Earmark
 docker compose up
 ```
+
+Single `app` service. PDF parsing runs in the browser via `@llamaindex/liteparse-wasm` — no parser sidecar.
 
 ## Architecture Highlights
 
 - **Money** is stored as integer cents (`bigInteger`). Never floats.
-- **Single household** — both apps lock to one household per user; no multi-tenancy slug routing.
-- **PDF statements are never persisted to disk** — parsed in-memory and discarded. Only the parsed transactions are kept.
-- **Livewire stack**: thin full-page components under `resources/views/pages/` (`pages::` namespace, `⚡` SFC convention), Form objects own validation, Policies own authorization, domain services + Laravel Actions for logic, Alpine.js for ephemeral client state, Flux UI for primitives.
-- **Inertia stack**: thin singular controllers + FormRequests, Svelte 5 runes (`$state`, `$derived`, `$effect`), Inertia owns the bridge.
+- **Single household per user** — locked at the app layer via `EnsureValidInvite` middleware; the schema still uses a `household_members` pivot in case multi-household ever becomes a requirement.
+- **PDF statements are never persisted to disk** — parsed in-memory in the browser; only the parsed transactions are kept.
+- **Thin Livewire components**: routing entry points delegate to Form objects (validation), Policies (authorization), domain Services (queries/orchestration), and Laravel Actions (bespoke operations). Logic does not accumulate in the page SFC.
+- **Alpine vs Livewire**: ephemeral / presentational state → Alpine; persisted / validated / server-meaningful → Livewire; bridged via `wire:model` or direct `$wire` access when an interaction is both.
+- **Registration is invite-only**. Bootstrap the first user with the `earmark:create-first-user` CLI; everyone else joins via a copy-paste invite URL (`/register?invite=<code>`) generated from `/household/members`.
 
 ## Documentation
 
-- [`prd.md`](prd.md) — product requirements
-- [`Earmark/docs/architecture-livewire.md`](Earmark/docs/architecture-livewire.md) — Livewire stack architecture
-- [`Earmark-web/docs/plans/prd-v1-implementation-plan.md`](Earmark-web/docs/plans/prd-v1-implementation-plan.md) — implementation plan
-- [`Earmark-web/docs/architecture-design.md`](Earmark-web/docs/architecture-design.md) — Inertia stack architecture
+- [`prd.md`](prd.md) — product requirements (zero-based budgeting, PDF ingestion, household model)
+- [`Earmark/docs/architecture-livewire.md`](Earmark/docs/architecture-livewire.md) — Livewire stack architecture, do's and don'ts
 
 ## Issue Tracking
 
@@ -100,6 +90,11 @@ bd show <id>         # view issue details
 bd stats             # database snapshot
 ```
 
-## Status
+## Testing
 
-Early in development. The Livewire reimplementation is being built feature-by-feature against the PRD, mirroring the Inertia version's scope. The schema, auth flow, household model, and Fortify wiring are the current focus.
+```bash
+cd Earmark
+php artisan test --compact          # all tests
+php artisan test --filter=BudgetServiceTest
+vendor/bin/pint --dirty             # format dirty files
+```
