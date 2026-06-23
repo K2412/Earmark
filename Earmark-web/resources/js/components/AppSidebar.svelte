@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Link, page } from '@inertiajs/svelte';
+    import { Link } from '@inertiajs/svelte';
     import BookOpen from 'lucide-svelte/icons/book-open';
     import FolderGit2 from 'lucide-svelte/icons/folder-git-2';
     import LayoutGrid from 'lucide-svelte/icons/layout-grid';
@@ -8,7 +8,6 @@
     import NavFooter from '@/components/NavFooter.svelte';
     import NavMain from '@/components/NavMain.svelte';
     import NavUser from '@/components/NavUser.svelte';
-    import TeamSwitcher from '@/components/TeamSwitcher.svelte';
     import {
         Sidebar,
         SidebarContent,
@@ -18,8 +17,8 @@
         SidebarMenuButton,
         SidebarMenuItem,
     } from '@/components/ui/sidebar';
-    import { dashboard } from '@/routes';
-    import type { NavItem, Team } from '@/types';
+    import { dashboard } from '@/routes/household';
+    import type { NavItem } from '@/types';
 
     let {
         children,
@@ -27,10 +26,7 @@
         children?: Snippet;
     } = $props();
 
-    const currentTeam = $derived(page.props.currentTeam as Team | null);
-    const dashboardUrl = $derived(
-        currentTeam ? dashboard(currentTeam.slug) : '/',
-    );
+    const dashboardUrl = $derived(dashboard());
 
     const mainNavItems = $derived<NavItem[]>([
         {
@@ -69,11 +65,6 @@
                         </Link>
                     {/snippet}
                 </SidebarMenuButton>
-            </SidebarMenuItem>
-        </SidebarMenu>
-        <SidebarMenu>
-            <SidebarMenuItem>
-                <TeamSwitcher />
             </SidebarMenuItem>
         </SidebarMenu>
     </SidebarHeader>

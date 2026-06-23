@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'parser' => [
+        'url' => env('PARSER_URL', 'http://parser:8000'),
+        'secret' => env('PARSER_SECRET'),
+    ],
+
 ];

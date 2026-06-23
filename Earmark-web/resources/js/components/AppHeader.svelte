@@ -8,7 +8,6 @@
     import AppLogo from '@/components/AppLogo.svelte';
     import AppLogoIcon from '@/components/AppLogoIcon.svelte';
     import Breadcrumbs from '@/components/Breadcrumbs.svelte';
-    import TeamSwitcher from '@/components/TeamSwitcher.svelte';
     import {
         Avatar,
         AvatarFallback,
@@ -43,8 +42,8 @@
     import { currentUrlState } from '@/lib/currentUrl.svelte';
     import { getInitials } from '@/lib/initials';
     import { toUrl } from '@/lib/utils';
-    import { dashboard } from '@/routes';
-    import type { BreadcrumbItem, NavItem, Team } from '@/types';
+    import { dashboard } from '@/routes/household';
+    import type { BreadcrumbItem, NavItem } from '@/types';
 
     let {
         breadcrumbs = [],
@@ -53,10 +52,7 @@
     } = $props();
 
     const auth = $derived(page.props.auth);
-    const currentTeam = $derived(page.props.currentTeam as Team | null);
-    const dashboardUrl = $derived(
-        currentTeam ? dashboard(currentTeam.slug) : '/',
-    );
+    const dashboardUrl = $derived(dashboard());
 
     const url = currentUrlState();
 
@@ -266,7 +262,6 @@
                     </DropdownMenuContent>
                 </DropdownMenu>
 
-                <TeamSwitcher inHeader={true} />
             </div>
         </div>
     </div>

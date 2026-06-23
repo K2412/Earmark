@@ -34,7 +34,7 @@ Doc-only verification for this plan: read the written Markdown file; no app test
 20. No human approval gates are required except dependency-approval checkpoints.
 21. Do not deploy.
 22. Prepare Docker Compose artifacts but stop before deployment.
-23. The Python parser service lives inside `Earmark-web/parser/`.
+23. The Python parser service lives in a separate sibling project: `/Users/kevinkabeya/Documents/Earmark/Earmark-parser`.
 24. Installed package versions are preferred over PRD version text; call out drift.
 25. The plan is intentionally detailed and self-contained.
 26. Include schema implementation checkpoints.
@@ -1238,7 +1238,7 @@ Architecture precondition: re-read `docs/architecture-design-patterns.md` for ap
 
 Purpose:
 
-- Create FastAPI parser service under `parser/`.
+- Create FastAPI parser service in the sibling project `/Users/kevinkabeya/Documents/Earmark/Earmark-parser`.
 - Define stable `/parse` contract before Laravel import code depends on it.
 - Keep parser stateless and file-persistence-free beyond request lifetime.
 
@@ -1251,7 +1251,8 @@ Candidate behavior tests/checks:
 
 Implementation notes:
 
-- Directory: `Earmark-web/parser/`.
+- Directory: `/Users/kevinkabeya/Documents/Earmark/Earmark-parser`.
+- Laravel must not contain the Python runtime or parser implementation; it owns only HTTP client/config contracts for calling this service.
 - Endpoint: `POST /parse`.
 - Input: multipart PDF.
 - Output:
@@ -1281,13 +1282,13 @@ Definition of done:
 
 - Laravel can mock or call a stable parser contract.
 - Parser can run locally with uvicorn.
-- Docker Compose can wire it later.
+- Root workspace Docker Compose can wire `Earmark-web` and `Earmark-parser` later as sibling services.
 
 Beads:
 
 | Bead | Type | Dependencies | Acceptance | Verification | Notes |
 |---|---|---|---|---|---|
-| PAR-1 Parser service skeleton | Task | None | FastAPI app runs locally | Parser test/check | Lives in `parser/` |
+| PAR-1 Parser service skeleton | Task | None | FastAPI app runs locally | Parser test/check | Lives in sibling `Earmark-parser/` project |
 | PAR-2 Shared-secret auth | Task | PAR-1 | Invalid secret rejected | Parser test | App-only caller |
 | PAR-3 Parse response contract | Risk spike/task | PAR-1 | Stable normalized JSON | Parser test | Keep generic parser |
 | PAR-4 No file persistence check | Task | PAR-1 | No project PDF writes | Test/check | Mirrors privacy rule |
@@ -1459,14 +1460,14 @@ Architecture precondition: re-read `docs/architecture-design-patterns.md` for ap
 
 Purpose:
 
-- Prepare self-hostable Docker Compose artifacts.
-- Wire Laravel app and parser container.
+- Prepare self-hostable Docker Compose artifacts at the root workspace level.
+- Wire Laravel app from `Earmark-web` and parser container from sibling `Earmark-parser`.
 - Require tmpfs for PHP upload temp files.
 - Stop before deployment.
 
 Candidate behavior checks:
 
-1. Docker Compose config includes app and parser services.
+1. Root workspace Docker Compose config includes app and parser services from sibling project directories.
 2. App service config mounts upload temp path as tmpfs.
 3. Parser URL/secret are configurable through config files/env consumed by Laravel config.
 4. Local compose can be smoke-tested, but production deployment is not performed.
@@ -1474,7 +1475,8 @@ Candidate behavior checks:
 Implementation notes:
 
 - Do not use `env()` outside config files.
-- Add parser config under `config/services.php` or equivalent.
+- Add Laravel parser client config under `config/services.php` or equivalent.
+- Compose should live at `/Users/kevinkabeya/Documents/Earmark/docker-compose.yml` or another root workspace compose file, not inside the parser implementation.
 - App service tmpfs:
 
 ```yaml
@@ -1502,7 +1504,7 @@ Beads:
 |---|---|---|---|---|---|
 | OPS-1 Parser/app env config | Task | PAR, IMP | Laravel reads parser URL/secret from config | Pest/config check | No direct env outside config |
 | OPS-2 Docker Compose app service | Task | Core app | App service defined | Compose config check | No deploy |
-| OPS-3 Docker Compose parser service | Task | PAR | Parser service defined | Compose config check | Same repo parser dir |
+| OPS-3 Docker Compose parser service | Task | PAR | Parser service defined from sibling `Earmark-parser` build context | Compose config check | Separate Python service directory |
 | OPS-4 tmpfs upload temp config | Task | OPS-2 | tmpfs configured for uploads | Config review/check | Required v1.0 DoD |
 | OPS-5 Local release checklist | Task | All milestones | Commands/checks listed | Review | Do not deploy |
 
@@ -1805,6 +1807,7 @@ Use these to discuss the plan before execution:
 5. Should the optional category seed use a generic YNAB-like set or a custom household list?
 6. Should Docker Compose be built before or after PDF import implementation?
 7. Should parser accuracy be intentionally minimal in v1.0, or should generic pdfplumber/docling quality be a release blocker?
+8. Should `Earmark-parser` be a separate git repository or a sibling directory tracked with the same workspace?
 
 ---
 

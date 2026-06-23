@@ -1,14 +1,11 @@
 <script module lang="ts">
-    import { dashboard } from '@/routes';
-    import type { Team } from '@/types';
+    import { dashboard } from '@/routes/household';
 
-    export const layout = (props: { currentTeam?: Team | null }) => ({
+    export const layout = () => ({
         breadcrumbs: [
             {
                 title: 'Dashboard',
-                href: props.currentTeam
-                    ? dashboard(props.currentTeam.slug)
-                    : '/',
+                href: dashboard(),
             },
         ],
     });

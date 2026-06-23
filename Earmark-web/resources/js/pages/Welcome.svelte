@@ -2,15 +2,11 @@
     import { Link, page } from '@inertiajs/svelte';
     import AppHead from '@/components/AppHead.svelte';
     import { toUrl } from '@/lib/utils';
-    import { dashboard, login } from '@/routes';
-    import { register } from '@/routes';
-    import type { Team } from '@/types';
+    import { login } from '@/routes';
+    import { dashboard } from '@/routes/household';
 
     const auth = $derived(page.props.auth);
-    const currentTeam = $derived(page.props.currentTeam as Team | null);
-    const dashboardUrl = $derived(
-        currentTeam ? dashboard(currentTeam.slug) : '/',
-    );
+    const dashboardUrl = $derived(dashboard());
 </script>
 
 <AppHead title="Welcome">
@@ -38,12 +34,6 @@
                     class="inline-block rounded-sm border border-transparent px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#19140035] dark:text-[#EDEDEC] dark:hover:border-[#3E3E3A]"
                 >
                     Log in
-                </Link>
-                <Link
-                    href={toUrl(register())}
-                    class="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
-                >
-                    Register
                 </Link>
             {/if}
         </nav>

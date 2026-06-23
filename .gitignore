@@ -3,3 +3,13 @@
 .dolt/
 *.db
 .beads-credential-key
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo

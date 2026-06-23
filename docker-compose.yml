@@ -1,0 +1,47 @@
+services:
+  app:
+    build:
+      context: ./Earmark-web
+      dockerfile: Dockerfile
+    env_file:
+      - ./Earmark-web/.env
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /var/www/html/database/database.sqlite
+      PARSER_URL: http://parser:8000
+      PARSER_SECRET: ${PARSER_SECRET:-local-parser-secret}
+      PHP_INI_UPLOAD_TMP_DIR: /tmp
+    ports:
+      - "8000:8000"
+    volumes:
+      - earmark_sqlite:/var/www/html/database
+      - earmark_storage:/var/www/html/storage
+    tmpfs:
+      - /tmp:size=128M
+    depends_on:
+      parser:
+        condition: service_healthy
+
+  parser:
+    build:
+      context: ./Earmark-parser
+      dockerfile: Dockerfile
+    environment:
+      PARSER_SECRET: ${PARSER_SECRET:-local-parser-secret}
+    ports:
+      - "8001:8000"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/docs', timeout=2).read()"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  earmark_sqlite:
+  earmark_storage:

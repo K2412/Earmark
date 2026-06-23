@@ -17,7 +17,6 @@
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
     import { Spinner } from '@/components/ui/spinner';
-    import { register } from '@/routes';
     import { store } from '@/routes/login';
     import { request } from '@/routes/password';
 
@@ -98,8 +97,7 @@
         </div>
 
         <div class="text-center text-sm text-muted-foreground">
-            Don't have an account?
-            <TextLink href={register()}>Sign up</TextLink>
+            Need access? Ask the household owner for an invite link.
         </div>
     {/snippet}
 </Form>

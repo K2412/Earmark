@@ -1,22 +1,26 @@
 <?php
 
 use App\Models\User;
+use Inertia\Testing\AssertableInertia as Assert;
 
-test('guests are redirected to the login page', function () {
-    $user = User::factory()->create();
-    $team = $user->currentTeam;
+test('guests are redirected from the household dashboard to the login page', function () {
+    $response = $this->get(route('household.dashboard'));
 
-    $response = $this->get(route('dashboard'));
     $response->assertRedirect(route('login'));
 });
 
-test('authenticated users can visit the dashboard', function () {
+test('authenticated users can visit the household dashboard without a team segment', function () {
     $user = User::factory()->create();
-    $team = $user->currentTeam;
 
-    $response = $this
+    $this
         ->actingAs($user)
-        ->get(route('dashboard'));
+        ->get('/household/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Dashboard')
+            ->missing('currentTeam')
+            ->missing('teams'),
+        );
 
-    $response->assertOk();
+    expect(route('household.dashboard', absolute: false))->toBe('/household/dashboard');
 });
