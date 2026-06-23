@@ -35,7 +35,7 @@ class UserFactory extends Factory
     public function configure(): static
     {
         return $this->afterCreating(function (User $user) {
-            app(CreateHousehold::class)->handle($user, "{$user->name}'s Household");
+            CreateHousehold::run($user, "{$user->name}'s Household");
         });
     }
 

@@ -1,14 +1,23 @@
 <?php
 
+use App\Models\HouseholdInvitation;
 use App\Models\User;
 
-test('registration screen can be rendered', function () {
+test('registration screen is closed by default (invite-only)', function () {
     $response = $this->get(route('register'));
 
-    $response->assertOk();
+    $response->assertForbidden();
 });
 
-test('new users can register', function () {
+test('new users can register through a valid invite', function () {
+    $owner = User::factory()->create();
+    $invitation = HouseholdInvitation::factory()->create([
+        'household_id' => $owner->household()->id,
+        'invited_by' => $owner->id,
+    ]);
+
+    $this->get(route('register', ['invite' => $invitation->code]));
+
     $response = $this->post(route('register.store'), [
         'name' => 'John Doe',
         'email' => 'test@example.com',
@@ -16,7 +25,7 @@ test('new users can register', function () {
         'password_confirmation' => 'password',
     ]);
 
-    $user = User::where('email', 'test@example.com')->first();
+    expect(User::where('email', 'test@example.com')->exists())->toBeTrue();
 
     $response->assertSessionHasNoErrors()
         ->assertRedirect(route('dashboard', absolute: false));

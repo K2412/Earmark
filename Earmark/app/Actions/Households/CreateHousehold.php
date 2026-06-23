@@ -6,9 +6,12 @@ use App\Enums\HouseholdRole;
 use App\Models\Household;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Lorisleiva\Actions\Concerns\AsAction;
 
 class CreateHousehold
 {
+    use AsAction;
+
     /**
      * Create a household and attach the user as Owner.
      */
