@@ -39,9 +39,25 @@ npx playwright install chromium
 php artisan test tests/Browser/Household
 ```
 
+## Privacy
+
+Earmark is self-hosted. Your household's financial data stays on the server you
+run it on. By default it is **not** sent to Earmark's maintainers or to any
+third-party service — there is no telemetry, no hosted account, and no bank-sync
+provider in the core product.
+
 ## Documentation
 
 - [CONTEXT.md](CONTEXT.md) — household language
 - [docs/architecture-svelte.md](docs/architecture-svelte.md) — Laravel, Inertia, and Svelte layering
 - [docs/adr](docs/adr) — household-owned balance sheet; server-owned projection math
 - [design-patterns/patterns.md](design-patterns/patterns.md) — interface patterns
+
+## Contributing and security
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) — setup, workflow, and support boundaries
+- [SECURITY.md](SECURITY.md) — how to report a vulnerability privately
+
+## Licence
+
+Earmark is open source under the [MIT Licence](LICENSE).
