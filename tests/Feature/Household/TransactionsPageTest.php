@@ -42,9 +42,9 @@ test('transactions index lists household transactions newest-first', function ()
         ->get(route('household.transactions.index'))
         ->assertInertia(fn (Assert $page) => $page
             ->component('household/Transactions')
-            ->has('transactions', 2)
-            ->where('transactions.0.payee', 'Newer')
-            ->where('transactions.1.payee', 'Older')
+            ->has('transactions.data', 2)
+            ->where('transactions.data.0.payee', 'Newer')
+            ->where('transactions.data.1.payee', 'Older')
         );
 });
 

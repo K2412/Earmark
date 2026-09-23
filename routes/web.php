@@ -37,6 +37,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/household/transactions', [TransactionController::class, 'index'])->name('household.transactions.index');
     Route::post('/household/transactions', [TransactionController::class, 'store'])->name('household.transactions.store');
     Route::get('/household/transactions/payee-suggestion', [TransactionController::class, 'suggest'])->name('household.transactions.suggest');
+    Route::post('/household/transactions/review', [TransactionController::class, 'review'])->name('household.transactions.review');
+    Route::patch('/household/transactions/{transaction}', [TransactionController::class, 'update'])->name('household.transactions.update');
+    Route::delete('/household/transactions/{transaction}', [TransactionController::class, 'destroy'])->name('household.transactions.destroy');
 
     Route::get('/household/import', [ImportController::class, 'index'])->name('household.import.index');
     Route::post('/household/import', [ImportController::class, 'store'])->name('household.import.store');
