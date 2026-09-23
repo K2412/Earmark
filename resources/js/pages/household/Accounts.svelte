@@ -24,6 +24,7 @@
     import { Label } from '@/components/ui/label';
     import { toUrl } from '@/lib/utils';
     import { index as assumptions } from '@/routes/household/assumptions';
+    import { index as holdings } from '@/routes/household/holdings';
     import { index as reconcile } from '@/routes/household/reconcile';
     import { index as registered } from '@/routes/household/registered';
 
@@ -162,6 +163,11 @@
             <Button variant="outline" asChild>
                 {#snippet children(props)}
                     <Link href={toUrl(assumptions())} class={props.class}>Assumptions</Link>
+                {/snippet}
+            </Button>
+            <Button variant="outline" asChild>
+                {#snippet children(props)}
+                    <Link href={toUrl(holdings())} class={props.class}>Holdings</Link>
                 {/snippet}
             </Button>
             <Button
