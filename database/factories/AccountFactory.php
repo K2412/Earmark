@@ -18,8 +18,11 @@ class AccountFactory extends Factory
     {
         return [
             'household_id' => Household::factory(),
+            'owner_user_id' => null,
             'name' => fake()->words(2, true),
+            'institution' => null,
             'type' => fake()->randomElement(['chequing', 'savings', 'credit_card', 'cash', 'other']),
+            'currency' => 'CAD',
             'starting_balance' => fake()->numberBetween(0, 500_000),
             'starting_balance_date' => fake()->date(),
             'archived' => false,
