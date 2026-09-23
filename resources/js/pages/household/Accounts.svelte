@@ -24,6 +24,7 @@
     import { Label } from '@/components/ui/label';
     import { toUrl } from '@/lib/utils';
     import { index as reconcile } from '@/routes/household/reconcile';
+    import { index as registered } from '@/routes/household/registered';
 
     type Account = {
         id: string;
@@ -150,6 +151,11 @@
             <Button variant="outline" asChild>
                 {#snippet children(props)}
                     <Link href={toUrl(reconcile())} class={props.class}>Reconcile</Link>
+                {/snippet}
+            </Button>
+            <Button variant="outline" asChild>
+                {#snippet children(props)}
+                    <Link href={toUrl(registered())} class={props.class}>Registered</Link>
                 {/snippet}
             </Button>
             <Button
