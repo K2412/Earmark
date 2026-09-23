@@ -78,6 +78,8 @@ class StageStatementImport
                     'amount' => $draft->amountCents,
                     'suggested_category_id' => $suggestion['category_id'],
                     'suggested_bucket_id' => $suggestion['bucket_id'],
+                    'final_category_id' => $suggestion['category_id'],
+                    'final_bucket_id' => $suggestion['bucket_id'],
                     'accept' => ! $isDuplicate,
                     'is_possible_duplicate' => $isDuplicate,
                     'duplicate_reason' => $row['reason'],

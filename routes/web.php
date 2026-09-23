@@ -36,6 +36,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/household/import', [ImportController::class, 'index'])->name('household.import.index');
     Route::post('/household/import', [ImportController::class, 'store'])->name('household.import.store');
+    Route::get('/household/import/{statementUpload}/review', [ImportController::class, 'review'])->name('household.import.review');
+    Route::patch('/household/import/{statementUpload}/staged', [ImportController::class, 'updateStaged'])->name('household.import.staged.update');
+    Route::post('/household/import/{statementUpload}/promote', [ImportController::class, 'promote'])->name('household.import.promote');
 
     Route::get('/household/transfers', [TransferController::class, 'index'])->name('household.transfers.index');
     Route::post('/household/transfers', [TransferController::class, 'store'])->name('household.transfers.store');
