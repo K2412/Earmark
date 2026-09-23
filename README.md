@@ -53,6 +53,10 @@ provider in the core product.
 - [docs/adr](docs/adr) — household-owned balance sheet; server-owned projection math
 - [design-patterns/patterns.md](design-patterns/patterns.md) — interface patterns
 
+## Self-hosting
+
+- [docs/self-hosting.md](docs/self-hosting.md) — install, upgrade, backup, restore, deletion, and recovery, with no proprietary dependency
+
 ## Contributing and security
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) — setup, workflow, and support boundaries

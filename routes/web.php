@@ -10,6 +10,7 @@ use App\Http\Controllers\Household\MemberController;
 use App\Http\Controllers\Household\NetWorthController;
 use App\Http\Controllers\Household\PayeeRuleController;
 use App\Http\Controllers\Household\PlanController;
+use App\Http\Controllers\Household\PortabilityController;
 use App\Http\Controllers\Household\ReconciliationController;
 use App\Http\Controllers\Household\RecurringController;
 use App\Http\Controllers\Household\RegisteredController;
@@ -114,6 +115,11 @@ Route::middleware(['auth', 'verified', EnsureAdvisorReadOnly::class])->group(fun
     Route::patch('/household/net-worth/valuations/{valuation}', [NetWorthController::class, 'updateValuation'])->name('household.net-worth.valuations.update');
     Route::post('/household/net-worth/valuations/{valuation}/archive', [NetWorthController::class, 'archiveValuation'])->name('household.net-worth.valuations.archive');
     Route::post('/household/net-worth/plan', [NetWorthController::class, 'storePlan'])->name('household.net-worth.plan.store');
+
+    Route::get('/household/portability', [PortabilityController::class, 'index'])->name('household.portability.index');
+    Route::get('/household/portability/export', [PortabilityController::class, 'export'])->name('household.portability.export');
+    Route::post('/household/portability/restore', [PortabilityController::class, 'restore'])->name('household.portability.restore');
+    Route::delete('/household/portability', [PortabilityController::class, 'destroy'])->name('household.portability.destroy');
 
     Route::get('/household/members', [MemberController::class, 'index'])->name('household.members.index');
     Route::post('/household/members/invitations', [MemberController::class, 'store'])->name('household.members.invitations.store');

@@ -25,6 +25,7 @@
     import { toUrl } from '@/lib/utils';
     import { index as assumptions } from '@/routes/household/assumptions';
     import { index as holdings } from '@/routes/household/holdings';
+    import { index as portability } from '@/routes/household/portability';
     import { index as reconcile } from '@/routes/household/reconcile';
     import { index as registered } from '@/routes/household/registered';
     import { index as scenarios } from '@/routes/household/scenarios';
@@ -174,6 +175,11 @@
             <Button variant="outline" asChild>
                 {#snippet children(props)}
                     <Link href={toUrl(scenarios())} class={props.class}>Scenarios</Link>
+                {/snippet}
+            </Button>
+            <Button variant="outline" asChild>
+                {#snippet children(props)}
+                    <Link href={toUrl(portability())} class={props.class}>Data &amp; backup</Link>
                 {/snippet}
             </Button>
             <Button
