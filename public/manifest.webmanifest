@@ -1,0 +1,24 @@
+{
+    "name": "Earmark",
+    "short_name": "Earmark",
+    "description": "Self-hosted, Canada-first household finance and wealth planning.",
+    "start_url": "/household/dashboard",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#0a0a0a",
+    "theme_color": "#0a0a0a",
+    "icons": [
+        {
+            "src": "/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "/apple-touch-icon.png",
+            "sizes": "180x180",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

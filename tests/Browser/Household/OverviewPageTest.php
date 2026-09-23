@@ -43,3 +43,13 @@ it('opens accounts from the overview shortcuts', function () {
         ->assertPathIs('/household/accounts')
         ->assertSee('No accounts yet');
 });
+
+it('reveals the card customization panel', function () {
+    actingAsOwner();
+
+    visit('/household/dashboard')
+        ->assertDontSee('Choose the cards you want on your overview')
+        ->click('Customize')
+        ->assertSee('Choose the cards you want on your overview')
+        ->assertSee('Review queue');
+});

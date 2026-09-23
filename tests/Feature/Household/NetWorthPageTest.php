@@ -92,9 +92,9 @@ test('overview cards stay consistent with net worth snapshot', function () {
     $this->actingAs($user)
         ->get(route('dashboard'))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('netWorth.investable', Money::format(250_000))
-            ->where('netWorth.total', Money::format(250_000))
-            ->where('netWorth.targetGap', Money::format(750_000))
+            ->where('cards.net_worth.investable', Money::format(250_000))
+            ->where('cards.net_worth.total', Money::format(250_000))
+            ->where('cards.net_worth.targetGap', Money::format(750_000))
         );
 });
 
