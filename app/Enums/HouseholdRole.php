@@ -7,6 +7,7 @@ enum HouseholdRole: string
     case Owner = 'owner';
     case Admin = 'admin';
     case Member = 'member';
+    case Advisor = 'advisor';
 
     public function label(): string
     {
@@ -26,7 +27,16 @@ enum HouseholdRole: string
                 HouseholdPermission::CancelInvitation,
             ],
             self::Member => [],
+            self::Advisor => [],
         };
+    }
+
+    /**
+     * An advisor is a least-privilege, read-only collaborator.
+     */
+    public function isReadOnly(): bool
+    {
+        return $this === self::Advisor;
     }
 
     public function hasPermission(HouseholdPermission $permission): bool
@@ -40,6 +50,7 @@ enum HouseholdRole: string
             self::Owner => 3,
             self::Admin => 2,
             self::Member => 1,
+            self::Advisor => 0,
         };
     }
 

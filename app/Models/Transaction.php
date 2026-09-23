@@ -26,6 +26,7 @@ class Transaction extends Model
         'is_split',
         'cleared',
         'reviewed',
+        'review_assignee_id',
         'excluded_from_reports',
         'reconciled',
         'transfer_pair_id',
@@ -131,5 +132,13 @@ class Transaction extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function reviewAssignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'review_assignee_id');
     }
 }

@@ -49,6 +49,7 @@
         memo: string | null;
         cleared: boolean;
         reviewed: boolean;
+        assignee: string | null;
         source: string;
         is_split: boolean;
     };
@@ -86,6 +87,7 @@
         buckets,
         sources,
         activities,
+        currentUserId,
         defaults,
     }: {
         transactions: Paginator;
@@ -95,8 +97,17 @@
         buckets: Option[];
         sources: string[];
         activities: { id: string; action: string; description: string; user: string | null; at: string | null }[];
+        currentUserId: number;
         defaults: { date: string };
     } = $props();
+
+    function assignToMe(row: Row): void {
+        router.post(
+            TransactionController.assign(row.id).url,
+            { assignee_id: currentUserId },
+            { preserveScroll: true },
+        );
+    }
 
     const entry = new TransactionEntryState();
     let showForm = $state(false);
@@ -505,12 +516,18 @@
                                     {:else}
                                         <span class="rounded-full bg-amber-100 px-2 py-0.5 text-amber-800">Needs review</span>
                                     {/if}
+                                    {#if transaction.assignee}
+                                        <span class="rounded-full bg-violet-100 px-2 py-0.5 text-violet-800">→ {transaction.assignee}</span>
+                                    {/if}
                                 </span>
                             </td>
                             <td class="px-4 py-3">
                                 <div class="flex justify-end gap-2">
                                     <Button type="button" variant="ghost" onclick={() => startEdit(transaction)}>
                                         Edit
+                                    </Button>
+                                    <Button type="button" variant="ghost" onclick={() => assignToMe(transaction)} data-test="assign-to-me">
+                                        Assign me
                                     </Button>
                                     <Button type="button" variant="ghost" onclick={() => destroy(transaction)}>
                                         Delete
