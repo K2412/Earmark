@@ -12,7 +12,7 @@
 </script>
 
 <script lang="ts">
-    import { Form, Link } from '@inertiajs/svelte';
+    import { Form, Link, router } from '@inertiajs/svelte';
     import PlanController from '@/actions/App/Http/Controllers/Household/PlanController';
     import AppHead from '@/components/AppHead.svelte';
     import ErrorSummary from '@/components/ErrorSummary.svelte';
@@ -65,6 +65,25 @@
 
     const monthQuery = (cursor: { year: number; month: number }) =>
         planIndex({ query: { year: cursor.year, month: cursor.month } });
+
+    let obBucketId = $state('');
+    let obAmount = $state(0);
+
+    function saveObligation(): void {
+        if (!obBucketId) {
+            return;
+        }
+
+        router.post(
+            PlanController.setObligation(obBucketId).url,
+            {
+                monthly_obligation: Number(obAmount),
+                effective_year: year,
+                effective_month: month,
+            },
+            { preserveScroll: true },
+        );
+    }
 </script>
 
 <AppHead title="Plan" />
@@ -261,5 +280,80 @@
                 </Button>
             {/snippet}
         </Form>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+        <Form
+            {...PlanController.assign.form()}
+            class="space-y-4 rounded-xl border p-4"
+        >
+            {#snippet children({ errors, processing })}
+                <h2 class="font-semibold">Move money</h2>
+                <p class="text-sm text-muted-foreground">
+                    Move funds between buckets for {plan.monthLabel}. Every cent is
+                    conserved.
+                </p>
+                <ErrorSummary
+                    errors={Object.entries(errors).map(([fieldId, message]) => ({
+                        fieldId,
+                        message,
+                    }))}
+                />
+                <input type="hidden" name="year" value={year} />
+                <input type="hidden" name="month" value={month} />
+                <div class="grid gap-2">
+                    <Label for="from_bucket_id">From</Label>
+                    <select id="from_bucket_id" name="from_bucket_id" class={selectClass}>
+                        <option value="">Select a bucket</option>
+                        {#each plan.rows as row (row.id)}
+                            <option value={row.id}>{row.name}</option>
+                        {/each}
+                    </select>
+                    <InputError message={errors.from_bucket_id} />
+                </div>
+                <div class="grid gap-2">
+                    <Label for="to_bucket_id">To</Label>
+                    <select id="to_bucket_id" name="to_bucket_id" class={selectClass}>
+                        <option value="">Select a bucket</option>
+                        {#each plan.rows as row (row.id)}
+                            <option value={row.id}>{row.name}</option>
+                        {/each}
+                    </select>
+                    <InputError message={errors.to_bucket_id} />
+                </div>
+                <div class="grid gap-2">
+                    <Label for="assign-amount">Amount (cents)</Label>
+                    <Input id="assign-amount" name="amount" type="number" min="1" step="1" />
+                    <InputError message={errors.amount} />
+                </div>
+                <Button type="submit" disabled={processing} data-test="submit-assign">
+                    Move money
+                </Button>
+            {/snippet}
+        </Form>
+
+        <div class="space-y-4 rounded-xl border p-4">
+            <h2 class="font-semibold">Set monthly obligation</h2>
+            <p class="text-sm text-muted-foreground">
+                Effective {plan.monthLabel} onwards — prior months are never
+                rewritten.
+            </p>
+            <div class="grid gap-2">
+                <Label for="ob-bucket">Bucket</Label>
+                <select id="ob-bucket" class={selectClass} bind:value={obBucketId}>
+                    <option value="">Select a bucket</option>
+                    {#each plan.rows as row (row.id)}
+                        <option value={row.id}>{row.name}</option>
+                    {/each}
+                </select>
+            </div>
+            <div class="grid gap-2">
+                <Label for="ob-amount">Monthly obligation (cents)</Label>
+                <Input id="ob-amount" type="number" min="0" step="1" bind:value={obAmount} />
+            </div>
+            <Button type="button" onclick={saveObligation} data-test="submit-obligation">
+                Save obligation
+            </Button>
+        </div>
     </div>
 </div>
