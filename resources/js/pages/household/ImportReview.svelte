@@ -14,14 +14,36 @@
 <script lang="ts">
     import { router } from '@inertiajs/svelte';
     import { untrack } from 'svelte';
+    import CategoryController from '@/actions/App/Http/Controllers/Household/CategoryController';
     import ImportController from '@/actions/App/Http/Controllers/Household/ImportController';
     import AppHead from '@/components/AppHead.svelte';
     import ErrorSummary from '@/components/ErrorSummary.svelte';
     import Heading from '@/components/Heading.svelte';
     import { Button } from '@/components/ui/button';
+    import {
+        Dialog,
+        DialogContent,
+        DialogFooter,
+        DialogTitle,
+    } from '@/components/ui/dialog';
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
+    import InputError from '@/components/InputError.svelte';
     import { formatCents } from '@/lib/importCsv';
+
+    const CATEGORY_TYPES = [
+        'income',
+        'housing',
+        'transportation',
+        'food',
+        'household',
+        'personal',
+        'health',
+        'debt',
+        'savings',
+        'fees',
+        'other',
+    ] as const;
 
     type Option = { id: string; name: string };
 
@@ -222,6 +244,45 @@
             },
         );
     }
+
+    let showCategoryModal = $state(false);
+    let newCategoryName = $state('');
+    let newCategoryType = $state<(typeof CATEGORY_TYPES)[number]>('other');
+    let creatingCategory = $state(false);
+    let categoryError = $state<string | null>(null);
+
+    function openCategoryModal(): void {
+        newCategoryName = '';
+        newCategoryType = 'other';
+        categoryError = null;
+        showCategoryModal = true;
+    }
+
+    // Create a category inline; preserveState keeps the in-progress row edits, and the
+    // refreshed `categories` prop makes the new option appear in every dropdown.
+    function createCategory(): void {
+        creatingCategory = true;
+        categoryError = null;
+
+        router.post(
+            CategoryController.store.url(),
+            { name: newCategoryName, type: newCategoryType },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => {
+                    showCategoryModal = false;
+                },
+                onError: (formErrors) => {
+                    categoryError =
+                        formErrors.name ??
+                        formErrors.type ??
+                        'Could not create the category.';
+                },
+                onFinish: () => (creatingCategory = false),
+            },
+        );
+    }
 </script>
 
 <AppHead title="Review import" />
@@ -238,6 +299,17 @@
             message,
         }))}
     />
+
+    <div class="flex justify-end">
+        <Button
+            type="button"
+            variant="outline"
+            onclick={openCategoryModal}
+            data-test="new-category"
+        >
+            New category
+        </Button>
+    </div>
 
     <div class="flex flex-col gap-4">
         {#each editRows as row, index (row.id)}
@@ -413,3 +485,52 @@
         <p class="text-sm text-muted-foreground">All rows have been promoted to the ledger.</p>
     {/if}
 </div>
+
+<Dialog bind:open={showCategoryModal}>
+    <DialogContent>
+        <DialogTitle>Create a category</DialogTitle>
+        <div class="mt-4 flex flex-col gap-4">
+            <div class="grid gap-1">
+                <Label for="new-category-name">Name</Label>
+                <Input
+                    id="new-category-name"
+                    bind:value={newCategoryName}
+                    placeholder="e.g. Streaming"
+                    data-test="new-category-name"
+                />
+            </div>
+            <div class="grid gap-1">
+                <Label for="new-category-type">Type</Label>
+                <select
+                    id="new-category-type"
+                    class={selectClass}
+                    bind:value={newCategoryType}
+                    data-test="new-category-type"
+                >
+                    {#each CATEGORY_TYPES as type (type)}
+                        <option value={type}>{type}</option>
+                    {/each}
+                </select>
+            </div>
+            <InputError message={categoryError ?? undefined} />
+        </div>
+        <DialogFooter>
+            <Button
+                type="button"
+                variant="ghost"
+                onclick={() => (showCategoryModal = false)}
+                disabled={creatingCategory}
+            >
+                Cancel
+            </Button>
+            <Button
+                type="button"
+                onclick={createCategory}
+                disabled={creatingCategory || newCategoryName.trim() === ''}
+                data-test="new-category-save"
+            >
+                {creatingCategory ? 'Creating…' : 'Create category'}
+            </Button>
+        </DialogFooter>
+    </DialogContent>
+</Dialog>
