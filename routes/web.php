@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Household\AccountController;
+use App\Http\Controllers\Household\AssumptionController;
 use App\Http\Controllers\Household\DashboardController;
 use App\Http\Controllers\Household\GoalController;
 use App\Http\Controllers\Household\ImportController;
@@ -72,6 +73,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/household/recurring', [RecurringController::class, 'index'])->name('household.recurring.index');
     Route::post('/household/recurring', [RecurringController::class, 'store'])->name('household.recurring.store');
     Route::patch('/household/recurring/{recurringSchedule}', [RecurringController::class, 'update'])->name('household.recurring.update');
+
+    Route::get('/household/assumptions', [AssumptionController::class, 'index'])->name('household.assumptions.index');
+    Route::post('/household/assumptions', [AssumptionController::class, 'store'])->name('household.assumptions.store');
 
     Route::get('/household/registered', [RegisteredController::class, 'index'])->name('household.registered.index');
     Route::post('/household/registered', [RegisteredController::class, 'store'])->name('household.registered.store');

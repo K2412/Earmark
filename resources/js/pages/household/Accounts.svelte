@@ -23,6 +23,7 @@
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
     import { toUrl } from '@/lib/utils';
+    import { index as assumptions } from '@/routes/household/assumptions';
     import { index as reconcile } from '@/routes/household/reconcile';
     import { index as registered } from '@/routes/household/registered';
 
@@ -156,6 +157,11 @@
             <Button variant="outline" asChild>
                 {#snippet children(props)}
                     <Link href={toUrl(registered())} class={props.class}>Registered</Link>
+                {/snippet}
+            </Button>
+            <Button variant="outline" asChild>
+                {#snippet children(props)}
+                    <Link href={toUrl(assumptions())} class={props.class}>Assumptions</Link>
                 {/snippet}
             </Button>
             <Button
