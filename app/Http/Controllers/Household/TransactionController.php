@@ -9,6 +9,7 @@ use App\Actions\Transactions\SplitTransaction;
 use App\Actions\Transactions\UpdateTransaction;
 use App\Concerns\ResolvesHousehold;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Household\AssignReviewRequest;
 use App\Http\Requests\Household\BulkReviewRequest;
 use App\Http\Requests\Household\SplitTransactionRequest;
 use App\Http\Requests\Household\StoreTransactionRequest;
@@ -16,7 +17,9 @@ use App\Http\Requests\Household\SuggestPayeeRequest;
 use App\Http\Requests\Household\UpdateTransactionRequest;
 use App\Models\Transaction;
 use App\Models\TransactionActivity;
+use App\Models\User;
 use App\Services\Payee\PayeeRuleService;
+use App\Services\Transaction\TransactionActivityLogger;
 use App\Services\Transaction\TransactionRegisterService;
 use App\Support\Money;
 use Illuminate\Http\JsonResponse;
@@ -50,6 +53,7 @@ class TransactionController extends Controller
             'amount_max' => $request->filled('amount_max') ? (int) $request->input('amount_max') : null,
             'cleared' => $request->filled('cleared') ? $request->boolean('cleared') : null,
             'reviewed' => $request->filled('reviewed') ? $request->boolean('reviewed') : null,
+            'assignee_id' => $request->query('assigned') === 'me' ? $request->user()->id : null,
         ];
 
         $transactions = $this->register->query($household, $filters)
@@ -70,6 +74,7 @@ class TransactionController extends Controller
                 'memo' => $transaction->memo,
                 'cleared' => $transaction->cleared,
                 'reviewed' => $transaction->reviewed,
+                'assignee' => $transaction->reviewAssignee?->name,
                 'source' => $transaction->source,
                 'is_split' => $transaction->is_split,
             ]);
@@ -96,6 +101,9 @@ class TransactionController extends Controller
             'buckets' => $household->buckets()->where('archived', false)->orderBy('name')->get(['id', 'name']),
             'sources' => ['manual', 'imported_csv', 'imported_pdf'],
             'activities' => $activities,
+            'members' => $household->members()->get(['users.id', 'users.name'])
+                ->map(fn ($member): array => ['id' => $member->id, 'name' => $member->name]),
+            'currentUserId' => $request->user()->id,
             'defaults' => [
                 'date' => now()->toDateString(),
             ],
@@ -140,6 +148,22 @@ class TransactionController extends Controller
         $action->handle($transaction, $request->validated('splits'), $request->user());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Split saved.')]);
+
+        return back();
+    }
+
+    public function assign(AssignReviewRequest $request, Transaction $transaction, TransactionActivityLogger $activity): RedirectResponse
+    {
+        $assigneeId = $request->validated('assignee_id');
+        $transaction->update(['review_assignee_id' => $assigneeId, 'reviewed' => false]);
+
+        $description = $assigneeId
+            ? sprintf("Assigned '%s' to %s for review", $transaction->payee, User::query()->whereKey($assigneeId)->value('name'))
+            : sprintf("Cleared the review assignment on '%s'", $transaction->payee);
+
+        $activity->log($transaction->household, $request->user(), $transaction, 'assigned', $description);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Review assignment updated.')]);
 
         return back();
     }

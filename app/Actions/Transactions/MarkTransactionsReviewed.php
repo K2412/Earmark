@@ -25,7 +25,7 @@ class MarkTransactionsReviewed
         $count = $household->transactions()
             ->whereIn('id', $ids)
             ->whereNull('transfer_pair_id')
-            ->update(['reviewed' => $reviewed]);
+            ->update($reviewed ? ['reviewed' => true, 'review_assignee_id' => null] : ['reviewed' => false]);
 
         if ($count > 0) {
             $this->activity->log(

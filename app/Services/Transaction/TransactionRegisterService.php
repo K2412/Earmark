@@ -21,8 +21,12 @@ class TransactionRegisterService
     {
         $query = Transaction::query()
             ->where('household_id', $household->id)
-            ->with(['account', 'category', 'bucket'])
+            ->with(['account', 'category', 'bucket', 'reviewAssignee'])
             ->whereNull('transfer_pair_id');
+
+        if (! empty($filters['assignee_id'])) {
+            $query->where('review_assignee_id', $filters['assignee_id']);
+        }
 
         if (! empty($filters['date_from'])) {
             $query->whereDate('date', '>=', $filters['date_from']);

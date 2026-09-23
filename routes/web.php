@@ -17,6 +17,7 @@ use App\Http\Controllers\Household\ReportController;
 use App\Http\Controllers\Household\ScenarioController;
 use App\Http\Controllers\Household\TransactionController;
 use App\Http\Controllers\Household\TransferController;
+use App\Http\Middleware\EnsureAdvisorReadOnly;
 use App\Http\Middleware\EnsureEmailIsAllowlisted;
 use App\Http\Middleware\EnsureValidInvite;
 use Illuminate\Support\Facades\Route;
@@ -29,7 +30,7 @@ Route::middleware(['guest', EnsureValidInvite::class])->group(function () {
     Route::post('/register', [RegisteredUserController::class, 'store'])->middleware(['throttle:6,1', EnsureEmailIsAllowlisted::class])->name('register.store');
 });
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', EnsureAdvisorReadOnly::class])->group(function () {
     Route::get('/household/dashboard', [DashboardController::class, 'show'])->name('dashboard');
 
     Route::get('/household/accounts', [AccountController::class, 'index'])->name('household.accounts.index');
@@ -51,6 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/household/transactions/review', [TransactionController::class, 'review'])->name('household.transactions.review');
     Route::patch('/household/transactions/{transaction}', [TransactionController::class, 'update'])->name('household.transactions.update');
     Route::post('/household/transactions/{transaction}/split', [TransactionController::class, 'split'])->name('household.transactions.split');
+    Route::post('/household/transactions/{transaction}/assign', [TransactionController::class, 'assign'])->name('household.transactions.assign');
     Route::delete('/household/transactions/{transaction}', [TransactionController::class, 'destroy'])->name('household.transactions.destroy');
 
     Route::get('/household/import', [ImportController::class, 'index'])->name('household.import.index');
