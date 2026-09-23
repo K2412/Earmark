@@ -78,11 +78,11 @@ test('valid invite remembers itself in the session for the POST', function () {
 
     $response = $this->post(route('register.store'), [
         'name' => 'Invited User',
-        'email' => 'newuser@example.com',
+        'email' => allowlistedEmail(),
         'password' => 'password-secret',
         'password_confirmation' => 'password-secret',
     ]);
 
     $response->assertSessionHasNoErrors();
-    $this->assertDatabaseHas('users', ['email' => 'newuser@example.com']);
+    $this->assertDatabaseHas('users', ['email' => allowlistedEmail()]);
 });

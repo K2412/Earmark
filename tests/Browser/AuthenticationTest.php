@@ -26,7 +26,7 @@ it('registers through a valid invite and lands on overview', function () {
 
     visit('/register?invite='.$invitation->code)
         ->fill('name', 'Bob Invitee')
-        ->fill('email', 'bob@example.com')
+        ->fill('email', allowlistedEmail())
         ->fill('password', 'password-secret')
         ->fill('password_confirmation', 'password-secret')
         ->click('@register-user-button')
@@ -34,9 +34,9 @@ it('registers through a valid invite and lands on overview', function () {
         ->assertSee('Unassigned Funds');
 
     $this->assertAuthenticated();
-    $this->assertDatabaseHas('users', ['email' => 'bob@example.com']);
+    $this->assertDatabaseHas('users', ['email' => allowlistedEmail()]);
 
-    $bob = User::query()->where('email', 'bob@example.com')->sole();
+    $bob = User::query()->where('email', allowlistedEmail())->sole();
 
     expect($bob->household()->id)->toBe($owner->household()->id)
         ->and($bob->householdRole($owner->household()))->toBe(HouseholdRole::Member);
@@ -44,7 +44,7 @@ it('registers through a valid invite and lands on overview', function () {
 
 it('signs the owner in from the login screen', function () {
     $user = User::factory()->create([
-        'email' => 'alice@example.com',
+        'email' => allowlistedEmail(),
         'password' => 'password',
     ]);
 

@@ -75,12 +75,12 @@ test('end-to-end: generate invite, register through it, become member of inviter
 
     $this->post(route('register.store'), [
         'name' => 'Bob Invitee',
-        'email' => 'bob@example.com',
+        'email' => allowlistedEmail(),
         'password' => 'password-secret',
         'password_confirmation' => 'password-secret',
     ])->assertSessionHasNoErrors();
 
-    $bob = User::firstWhere('email', 'bob@example.com');
+    $bob = User::firstWhere('email', allowlistedEmail());
     expect($bob)->not->toBeNull()
         ->and($bob->household()->id)->toBe($ownerHousehold->id)
         ->and($bob->householdRole($ownerHousehold))->toBe(HouseholdRole::Member);

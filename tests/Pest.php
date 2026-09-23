@@ -63,3 +63,11 @@ function actingAsOwner(array $attributes = []): User
 
     return $user;
 }
+
+/**
+ * An email permitted to sign up / sign in, taken from the configured allowlist.
+ */
+function allowlistedEmail(int $index = 0): string
+{
+    return config('access.auth_allowlist')[$index];
+}

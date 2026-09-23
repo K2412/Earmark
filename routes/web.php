@@ -7,6 +7,7 @@ use App\Http\Controllers\Household\NetWorthController;
 use App\Http\Controllers\Household\PlanController;
 use App\Http\Controllers\Household\TransactionController;
 use App\Http\Controllers\Household\TransferController;
+use App\Http\Middleware\EnsureEmailIsAllowlisted;
 use App\Http\Middleware\EnsureValidInvite;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Http\Controllers\RegisteredUserController;
@@ -15,7 +16,7 @@ Route::inertia('/', 'Welcome')->name('home');
 
 Route::middleware(['guest', EnsureValidInvite::class])->group(function () {
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
-    Route::post('/register', [RegisteredUserController::class, 'store'])->middleware(['throttle:6,1'])->name('register.store');
+    Route::post('/register', [RegisteredUserController::class, 'store'])->middleware(['throttle:6,1', EnsureEmailIsAllowlisted::class])->name('register.store');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
