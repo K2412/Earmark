@@ -30,6 +30,7 @@ class CsvImportNormalizer
         'DD/MM/YYYY' => 'd/m/Y',
         'YYYY/MM/DD' => 'Y/m/d',
         'DD-MM-YYYY' => 'd-m-Y',
+        'DD Mon YYYY' => 'd M Y',
     ];
 
     /**

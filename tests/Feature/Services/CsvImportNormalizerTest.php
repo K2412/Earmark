@@ -11,6 +11,23 @@ function singleMapping(string $format = 'YYYY-MM-DD', string $sign = 'negative_i
     return ['date_format' => $format, 'amount_mode' => 'single', 'sign' => $sign];
 }
 
+test('it parses textual month dates like an Amex export (DD Mon YYYY, positive is spending)', function () {
+    $result = $this->normalizer->normalize([
+        ['date' => '22 Sep 2026', 'payee' => 'BRILLIANT.ORG - EDU', 'amount' => '45.20'],
+        ['date' => '22 Sep 2026', 'payee' => 'PAYMENT RECEIVED - THANK YOU', 'amount' => '-982.00'],
+    ], singleMapping('DD Mon YYYY', 'positive_is_outflow'));
+
+    expect($result->drafts)->toHaveCount(2)
+        ->and($result->skipped)->toBe([]);
+
+    // On Amex a purchase is a positive amount → spending (negative cents).
+    expect($result->drafts[0]->date)->toBe('2026-09-22')
+        ->and($result->drafts[0]->amountCents)->toBe(-4520);
+
+    // A payment received is negative on Amex → money in (positive cents).
+    expect($result->drafts[1]->amountCents)->toBe(98200);
+});
+
 test('normalizes a single-amount row to iso date and signed cents', function () {
     $result = $this->normalizer->normalize(
         [['date' => '2026-06-01', 'payee' => '  Loblaws  #5025 ', 'amount' => '-72.50']],

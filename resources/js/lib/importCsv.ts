@@ -11,6 +11,7 @@ export const DATE_FORMATS = [
     'DD/MM/YYYY',
     'YYYY/MM/DD',
     'DD-MM-YYYY',
+    'DD Mon YYYY',
 ] as const;
 
 export type DateFormat = (typeof DATE_FORMATS)[number];
@@ -50,6 +51,12 @@ const DATE_PATTERNS: Record<DateFormat, RegExp> = {
     'DD/MM/YYYY': /^(\d{2})\/(\d{2})\/(\d{4})$/,
     'YYYY/MM/DD': /^(\d{4})\/(\d{2})\/(\d{2})$/,
     'DD-MM-YYYY': /^(\d{2})-(\d{2})-(\d{4})$/,
+    'DD Mon YYYY': /^(\d{2}) ([A-Za-z]{3}) (\d{4})$/,
+};
+
+const MONTHS: Record<string, number> = {
+    jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+    jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
 };
 
 export function normalizeDate(raw: string, format: DateFormat): string | null {
@@ -68,6 +75,14 @@ export function normalizeDate(raw: string, format: DateFormat): string | null {
         [, year, month, day] = match.map(Number);
     } else if (format === 'MM/DD/YYYY') {
         [, month, day, year] = match.map(Number);
+    } else if (format === 'DD Mon YYYY') {
+        day = Number(match[1]);
+        month = MONTHS[match[2].toLowerCase()] ?? 0;
+        year = Number(match[3]);
+
+        if (month === 0) {
+            return null;
+        }
     } else {
         [, day, month, year] = match.map(Number);
     }
