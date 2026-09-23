@@ -27,6 +27,7 @@
     import { index as holdings } from '@/routes/household/holdings';
     import { index as reconcile } from '@/routes/household/reconcile';
     import { index as registered } from '@/routes/household/registered';
+    import { index as scenarios } from '@/routes/household/scenarios';
 
     type Account = {
         id: string;
@@ -168,6 +169,11 @@
             <Button variant="outline" asChild>
                 {#snippet children(props)}
                     <Link href={toUrl(holdings())} class={props.class}>Holdings</Link>
+                {/snippet}
+            </Button>
+            <Button variant="outline" asChild>
+                {#snippet children(props)}
+                    <Link href={toUrl(scenarios())} class={props.class}>Scenarios</Link>
                 {/snippet}
             </Button>
             <Button

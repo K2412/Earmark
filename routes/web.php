@@ -14,6 +14,7 @@ use App\Http\Controllers\Household\ReconciliationController;
 use App\Http\Controllers\Household\RecurringController;
 use App\Http\Controllers\Household\RegisteredController;
 use App\Http\Controllers\Household\ReportController;
+use App\Http\Controllers\Household\ScenarioController;
 use App\Http\Controllers\Household\TransactionController;
 use App\Http\Controllers\Household\TransferController;
 use App\Http\Middleware\EnsureEmailIsAllowlisted;
@@ -100,6 +101,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/household/reconcile', [ReconciliationController::class, 'index'])->name('household.reconcile.index');
     Route::post('/household/reconcile/preview', [ReconciliationController::class, 'preview'])->name('household.reconcile.preview');
     Route::post('/household/reconcile', [ReconciliationController::class, 'store'])->name('household.reconcile.store');
+
+    Route::get('/household/scenarios', [ScenarioController::class, 'index'])->name('household.scenarios.index');
+    Route::post('/household/scenarios', [ScenarioController::class, 'store'])->name('household.scenarios.store');
+    Route::delete('/household/scenarios/{scenario}', [ScenarioController::class, 'destroy'])->name('household.scenarios.destroy');
 
     Route::get('/household/net-worth', [NetWorthController::class, 'show'])->name('household.net-worth.show');
     Route::post('/household/net-worth/positions', [NetWorthController::class, 'storePosition'])->name('household.net-worth.positions.store');
