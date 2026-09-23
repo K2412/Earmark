@@ -25,6 +25,7 @@ class Transaction extends Model
         'memo',
         'is_split',
         'cleared',
+        'reviewed',
         'reconciled',
         'transfer_pair_id',
         'source',
@@ -69,6 +70,7 @@ class Transaction extends Model
             'amount' => 'integer',
             'is_split' => 'boolean',
             'cleared' => 'boolean',
+            'reviewed' => 'boolean',
             'reconciled' => 'boolean',
         ];
     }
@@ -111,6 +113,14 @@ class Transaction extends Model
     public function splits(): HasMany
     {
         return $this->hasMany(TransactionSplit::class);
+    }
+
+    /**
+     * @return HasMany<TransactionActivity, $this>
+     */
+    public function activities(): HasMany
+    {
+        return $this->hasMany(TransactionActivity::class);
     }
 
     /**
