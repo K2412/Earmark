@@ -23,6 +23,7 @@
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
     import { toUrl } from '@/lib/utils';
+    import { index as importCsv } from '@/routes/household/import';
     import { index as transfers } from '@/routes/household/transfers';
     import { TransactionEntryState } from './TransactionEntryState.svelte';
 
@@ -61,6 +62,13 @@
     <div class="flex items-center justify-between gap-4">
         <Heading title="Transactions" />
         <div class="flex gap-2">
+            <Button variant="outline" asChild>
+                {#snippet children(props)}
+                    <Link href={toUrl(importCsv())} class={props.class}
+                        >Import CSV</Link
+                    >
+                {/snippet}
+            </Button>
             <Button variant="outline" asChild>
                 {#snippet children(props)}
                     <Link href={toUrl(transfers())} class={props.class}
