@@ -9,7 +9,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Household\StoreFinancialPositionRequest;
 use App\Http\Requests\Household\StoreHouseholdPlanRequest;
 use App\Http\Requests\Household\StoreValuationRequest;
+use App\Http\Requests\Household\UpdateValuationRequest;
 use App\Models\FinancialPosition;
+use App\Models\Valuation;
 use App\Services\NetWorth\ProjectionService;
 use App\Services\NetWorth\SnapshotService;
 use App\Support\Money;
@@ -31,7 +33,14 @@ class NetWorthController extends Controller
     public function show(Request $request): Response
     {
         $household = $this->household($request);
-        $snapshot = $this->snapshot->forHousehold($household);
+
+        $filters = [
+            'owner_user_id' => $request->string('owner_user_id')->toString() ?: null,
+            'purpose' => $request->string('purpose')->toString() ?: null,
+        ];
+
+        $snapshot = $this->snapshot->forHousehold($household, null, $filters);
+        $history = $this->snapshot->history($household, 12, $filters);
         $plan = $household->plans()->with('contributionPhases')->latest()->first();
 
         $projection = $snapshot['has_positions'] && $plan
@@ -59,6 +68,15 @@ class NetWorthController extends Controller
             ] : null,
             'projection' => $projection,
             'targetGap' => $targetGap,
+            'history' => collect($history)->map(fn (array $point): array => [
+                'date' => $point['date'],
+                'total' => Money::format($point['total_net_worth_cents']),
+                'total_cents' => $point['total_net_worth_cents'],
+                'investable' => Money::format($point['investable_cents']),
+            ])->values(),
+            'filters' => $filters,
+            'members' => $household->members()->get(['users.id', 'users.name'])
+                ->map(fn ($member): array => ['id' => $member->id, 'name' => $member->name]),
             'defaults' => [
                 'valued_at' => now()->toDateString(),
                 'target_year' => now()->addYears(30)->year,
@@ -116,6 +134,36 @@ class NetWorthController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Valuation recorded.')]);
 
         return to_route('household.net-worth.show');
+    }
+
+    public function updateValuation(UpdateValuationRequest $request, Valuation $valuation): RedirectResponse
+    {
+        $this->authorizeValuation($request, $valuation);
+
+        $valuation->update($request->validated());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Valuation corrected.')]);
+
+        return back();
+    }
+
+    public function archiveValuation(Request $request, Valuation $valuation): RedirectResponse
+    {
+        $this->authorizeValuation($request, $valuation);
+
+        $valuation->update(['archived' => ! $valuation->archived]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Valuation updated.')]);
+
+        return back();
+    }
+
+    private function authorizeValuation(Request $request, Valuation $valuation): void
+    {
+        abort_unless(
+            $valuation->financialPosition->household_id === $this->household($request)->id,
+            404,
+        );
     }
 
     public function storePlan(StoreHouseholdPlanRequest $request): RedirectResponse

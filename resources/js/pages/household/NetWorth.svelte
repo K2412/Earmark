@@ -12,7 +12,8 @@
 </script>
 
 <script lang="ts">
-    import { Form } from '@inertiajs/svelte';
+    import { Form, router } from '@inertiajs/svelte';
+    import { untrack } from 'svelte';
     import NetWorthController from '@/actions/App/Http/Controllers/Household/NetWorthController';
     import ActionableEmptyState from '@/components/ActionableEmptyState.svelte';
     import AppHead from '@/components/AppHead.svelte';
@@ -76,11 +77,17 @@
         snapshot,
         plan,
         projection,
+        history,
+        filters,
+        members,
         defaults,
         classifications,
         purposes,
     }: {
         snapshot: Snapshot;
+        history: { date: string; total: string; total_cents: number; investable: string }[];
+        filters: { owner_user_id: string | null; purpose: string | null };
+        members: { id: number; name: string }[];
         plan: {
             target_cents: number;
             target_year: number;
@@ -107,6 +114,16 @@
 
     let showPositionForm = $state(false);
     let valuingId = $state<string | null>(null);
+
+    let filterOwner = $state(untrack(() => filters.owner_user_id ?? ''));
+    let filterPurpose = $state(untrack(() => filters.purpose ?? ''));
+
+    function applyFilters(): void {
+        const query: Record<string, string> = {};
+        if (filterOwner) query.owner_user_id = filterOwner;
+        if (filterPurpose) query.purpose = filterPurpose;
+        router.get(show().url, query, { preserveScroll: true, preserveState: true, replace: true });
+    }
 
     const selectClass =
         'flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm';
@@ -138,6 +155,48 @@
 <AppHead title="Net Worth" />
 
 <div class="flex flex-col gap-6 p-4">
+    <div class="rounded-xl border p-4" data-test="networth-history">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+            <h2 class="text-sm font-semibold">Net-worth trend (last 12 months)</h2>
+            <div class="flex gap-2">
+                <select class={selectClass} bind:value={filterOwner} aria-label="Filter by owner">
+                    <option value="">All owners</option>
+                    {#each members as member (member.id)}
+                        <option value={member.id.toString()}>{member.name}</option>
+                    {/each}
+                </select>
+                <select class={selectClass} bind:value={filterPurpose} aria-label="Filter by purpose">
+                    <option value="">All purposes</option>
+                    {#each purposes as purpose (purpose.value)}
+                        <option value={purpose.value}>{purpose.label}</option>
+                    {/each}
+                </select>
+                <Button type="button" variant="outline" onclick={applyFilters} data-test="apply-networth-filters">
+                    Apply
+                </Button>
+            </div>
+        </div>
+        <div class="mt-3 overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="text-left text-muted-foreground">
+                    <tr>
+                        <th class="py-1 pr-4 font-medium">Month</th>
+                        <th class="py-1 pr-4 text-right font-medium">Investable</th>
+                        <th class="py-1 text-right font-medium">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {#each history as point (point.date)}
+                        <tr class="border-t">
+                            <td class="py-1 pr-4">{point.date}</td>
+                            <td class="py-1 pr-4 text-right font-mono">{point.investable}</td>
+                            <td class="py-1 text-right font-mono">{point.total}</td>
+                        </tr>
+                    {/each}
+                </tbody>
+            </table>
+        </div>
+    </div>
     <Heading
         title="Net Worth"
         description="Snapshot of household positions. Projection values are before tax; returns are after fees."
