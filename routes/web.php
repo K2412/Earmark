@@ -4,6 +4,7 @@ use App\Http\Controllers\Household\AccountController;
 use App\Http\Controllers\Household\AssumptionController;
 use App\Http\Controllers\Household\DashboardController;
 use App\Http\Controllers\Household\GoalController;
+use App\Http\Controllers\Household\HoldingController;
 use App\Http\Controllers\Household\ImportController;
 use App\Http\Controllers\Household\MemberController;
 use App\Http\Controllers\Household\NetWorthController;
@@ -84,6 +85,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/household/reports/export', [ReportController::class, 'export'])->name('household.reports.export');
     Route::post('/household/reports', [ReportController::class, 'store'])->name('household.reports.store');
     Route::delete('/household/reports/{savedReport}', [ReportController::class, 'destroy'])->name('household.reports.destroy');
+
+    Route::get('/household/holdings', [HoldingController::class, 'index'])->name('household.holdings.index');
+    Route::post('/household/holdings', [HoldingController::class, 'store'])->name('household.holdings.store');
+    Route::patch('/household/holdings/{holding}', [HoldingController::class, 'update'])->name('household.holdings.update');
+    Route::delete('/household/holdings/{holding}', [HoldingController::class, 'destroy'])->name('household.holdings.destroy');
 
     Route::get('/household/goals', [GoalController::class, 'index'])->name('household.goals.index');
     Route::post('/household/goals', [GoalController::class, 'store'])->name('household.goals.store');
