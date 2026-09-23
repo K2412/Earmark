@@ -102,7 +102,8 @@ test('transfers index lists outflow rows only', function () {
             ->has('transfers', 1)
             ->where('transfers.0.from', 'Chequing')
             ->where('transfers.0.to', 'Savings')
-            ->where('transfers.0.amount', Money::format(25000))
+            ->where('transfers.0.amount', 25000)
+            ->where('transfers.0.amount_formatted', Money::format(25000))
         );
 });
 
