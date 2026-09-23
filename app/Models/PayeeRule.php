@@ -15,9 +15,14 @@ class PayeeRule extends Model
 
     protected $fillable = [
         'household_id',
+        'name',
         'pattern',
+        'enabled',
         'category_id',
         'bucket_id',
+        'rename_to',
+        'hide_from_reports',
+        'mark_for_review',
         'priority',
         'auto_apply',
     ];
@@ -28,9 +33,17 @@ class PayeeRule extends Model
     protected function casts(): array
     {
         return [
+            'enabled' => 'boolean',
+            'hide_from_reports' => 'boolean',
+            'mark_for_review' => 'boolean',
             'priority' => 'integer',
             'auto_apply' => 'boolean',
         ];
+    }
+
+    public function label(): string
+    {
+        return $this->name ?: $this->pattern;
     }
 
     /**

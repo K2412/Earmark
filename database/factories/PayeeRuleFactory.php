@@ -19,9 +19,14 @@ class PayeeRuleFactory extends Factory
     {
         return [
             'household_id' => Household::factory(),
+            'name' => null,
             'pattern' => fake()->company(),
+            'enabled' => true,
             'category_id' => Category::factory(),
             'bucket_id' => null,
+            'rename_to' => null,
+            'hide_from_reports' => false,
+            'mark_for_review' => false,
             'priority' => 100,
             'auto_apply' => true,
         ];

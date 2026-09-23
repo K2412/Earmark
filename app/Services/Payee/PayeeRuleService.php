@@ -4,6 +4,8 @@ namespace App\Services\Payee;
 
 use App\Models\Household;
 use App\Models\PayeeRule;
+use App\Models\Transaction;
+use Illuminate\Support\Collection;
 
 class PayeeRuleService
 {
@@ -17,6 +19,7 @@ class PayeeRuleService
         }
 
         $query = PayeeRule::query()
+            ->where('enabled', true)
             ->orderBy('priority')
             ->orderBy('created_at');
 
@@ -49,5 +52,96 @@ class PayeeRuleService
         }
 
         return $match;
+    }
+
+    /**
+     * Existing non-transfer transactions whose payee matches the pattern.
+     *
+     * @return Collection<int, Transaction>
+     */
+    public function matchingTransactions(Household $household, string $pattern): Collection
+    {
+        if (trim($pattern) === '') {
+            return collect();
+        }
+
+        return Transaction::query()
+            ->where('household_id', $household->id)
+            ->whereNull('transfer_pair_id')
+            ->where('payee', 'like', '%'.$pattern.'%')
+            ->with(['category', 'bucket'])
+            ->orderBy('date', 'desc')
+            ->get();
+    }
+
+    /**
+     * Apply a rule's actions to a transaction in memory (no save). Rules never
+     * split or delete; split transactions keep their per-split attribution.
+     */
+    public function applyTo(PayeeRule $rule, Transaction $transaction): void
+    {
+        if ($rule->rename_to) {
+            $transaction->payee = $rule->rename_to;
+        }
+
+        if (! $transaction->is_split) {
+            if ($rule->category_id) {
+                $transaction->category_id = $rule->category_id;
+            }
+
+            if ($rule->bucket_id) {
+                $transaction->bucket_id = $rule->bucket_id;
+            }
+        }
+
+        if ($rule->hide_from_reports) {
+            $transaction->excluded_from_reports = true;
+        }
+
+        if ($rule->mark_for_review) {
+            $transaction->reviewed = false;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function create(array $data, Household $household): PayeeRule
+    {
+        return PayeeRule::query()->create([
+            ...$data,
+            'household_id' => $household->id,
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function update(PayeeRule $rule, array $data): PayeeRule
+    {
+        unset($data['household_id']);
+
+        $rule->fill($data)->save();
+
+        return $rule;
+    }
+
+    public function delete(PayeeRule $rule): void
+    {
+        $rule->delete();
+    }
+
+    /**
+     * @param  list<string>  $orderedIds
+     */
+    public function reorder(Household $household, array $orderedIds): void
+    {
+        $owned = PayeeRule::query()->where('household_id', $household->id)->pluck('id')->all();
+
+        foreach ($orderedIds as $position => $id) {
+            if (in_array($id, $owned, true)) {
+                PayeeRule::query()->whereKey($id)->update(['priority' => $position]);
+            }
+        }
     }
 }
