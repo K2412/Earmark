@@ -8,6 +8,7 @@ use App\Http\Controllers\Household\NetWorthController;
 use App\Http\Controllers\Household\PayeeRuleController;
 use App\Http\Controllers\Household\PlanController;
 use App\Http\Controllers\Household\ReconciliationController;
+use App\Http\Controllers\Household\RecurringController;
 use App\Http\Controllers\Household\TransactionController;
 use App\Http\Controllers\Household\TransferController;
 use App\Http\Middleware\EnsureEmailIsAllowlisted;
@@ -64,6 +65,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/household/transfers', [TransferController::class, 'store'])->name('household.transfers.store');
     Route::patch('/household/transfers/{transaction}', [TransferController::class, 'update'])->name('household.transfers.update');
     Route::delete('/household/transfers/{transaction}', [TransferController::class, 'destroy'])->name('household.transfers.destroy');
+
+    Route::get('/household/recurring', [RecurringController::class, 'index'])->name('household.recurring.index');
+    Route::post('/household/recurring', [RecurringController::class, 'store'])->name('household.recurring.store');
+    Route::patch('/household/recurring/{recurringSchedule}', [RecurringController::class, 'update'])->name('household.recurring.update');
 
     Route::get('/household/reconcile', [ReconciliationController::class, 'index'])->name('household.reconcile.index');
     Route::post('/household/reconcile/preview', [ReconciliationController::class, 'preview'])->name('household.reconcile.preview');
