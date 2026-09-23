@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Household\AccountController;
 use App\Http\Controllers\Household\DashboardController;
+use App\Http\Controllers\Household\ImportController;
 use App\Http\Controllers\Household\MemberController;
 use App\Http\Controllers\Household\NetWorthController;
 use App\Http\Controllers\Household\PlanController;
@@ -32,6 +33,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/household/transactions', [TransactionController::class, 'index'])->name('household.transactions.index');
     Route::post('/household/transactions', [TransactionController::class, 'store'])->name('household.transactions.store');
     Route::get('/household/transactions/payee-suggestion', [TransactionController::class, 'suggest'])->name('household.transactions.suggest');
+
+    Route::get('/household/import', [ImportController::class, 'index'])->name('household.import.index');
+    Route::post('/household/import', [ImportController::class, 'store'])->name('household.import.store');
 
     Route::get('/household/transfers', [TransferController::class, 'index'])->name('household.transfers.index');
     Route::post('/household/transfers', [TransferController::class, 'store'])->name('household.transfers.store');
