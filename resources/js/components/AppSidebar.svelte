@@ -5,6 +5,7 @@
     import Landmark from '@lucide/svelte/icons/landmark';
     import LayoutGrid from '@lucide/svelte/icons/layout-grid';
     import TrendingUp from '@lucide/svelte/icons/trending-up';
+    import Upload from '@lucide/svelte/icons/upload';
     import type { Snippet } from 'svelte';
     import AppLogo from '@/components/AppLogo.svelte';
     import NavFooter from '@/components/NavFooter.svelte';
@@ -22,6 +23,7 @@
     import { toUrl } from '@/lib/utils';
     import { dashboard } from '@/routes';
     import { index as accounts } from '@/routes/household/accounts';
+    import { index as importStatements } from '@/routes/household/import';
     import { show as netWorth } from '@/routes/household/net-worth';
     import { index as plan } from '@/routes/household/plan';
     import { index as transactions } from '@/routes/household/transactions';
@@ -47,6 +49,11 @@
             title: 'Transactions',
             href: transactions(),
             icon: ArrowLeftRight,
+        },
+        {
+            title: 'Import',
+            href: importStatements(),
+            icon: Upload,
         },
         {
             title: 'Accounts',
