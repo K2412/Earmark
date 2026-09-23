@@ -12,11 +12,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['name', 'slug'])]
+#[Fillable(['name', 'slug', 'overview_cards'])]
 class Household extends Model
 {
     /** @use HasFactory<HouseholdFactory> */
     use GeneratesUniqueHouseholdSlugs, HasFactory, SoftDeletes;
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'overview_cards' => 'array',
+        ];
+    }
 
     protected static function boot(): void
     {

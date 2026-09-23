@@ -8,6 +8,19 @@
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
+        <link rel="manifest" href="/manifest.webmanifest">
+        <meta name="theme-color" content="{{ ($appearance ?? 'system') == 'dark' ? '#0a0a0a' : '#fdfdfc' }}">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-title" content="Earmark">
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/sw.js').catch(() => {});
+                });
+            }
+        </script>
+
         @fonts
 
         @vite(['resources/css/app.css', 'resources/js/app.ts'])

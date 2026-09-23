@@ -33,6 +33,7 @@ Route::middleware(['guest', EnsureValidInvite::class])->group(function () {
 
 Route::middleware(['auth', 'verified', EnsureAdvisorReadOnly::class])->group(function () {
     Route::get('/household/dashboard', [DashboardController::class, 'show'])->name('dashboard');
+    Route::post('/household/dashboard/cards', [DashboardController::class, 'updateCards'])->name('dashboard.cards');
 
     Route::get('/household/accounts', [AccountController::class, 'index'])->name('household.accounts.index');
     Route::post('/household/accounts', [AccountController::class, 'store'])->name('household.accounts.store');
