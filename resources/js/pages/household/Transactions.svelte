@@ -27,6 +27,7 @@
     import { index as goals } from '@/routes/household/goals';
     import { index as importCsv } from '@/routes/household/import';
     import { index as recurring } from '@/routes/household/recurring';
+    import { index as reports } from '@/routes/household/reports';
     import { index as rules } from '@/routes/household/rules';
     import { index as transfers } from '@/routes/household/transfers';
     import { TransactionEntryState } from './TransactionEntryState.svelte';
@@ -329,6 +330,11 @@
             <Button variant="outline" asChild>
                 {#snippet children(props)}
                     <Link href={toUrl(goals())} class={props.class}>Goals</Link>
+                {/snippet}
+            </Button>
+            <Button variant="outline" asChild>
+                {#snippet children(props)}
+                    <Link href={toUrl(reports())} class={props.class}>Reports</Link>
                 {/snippet}
             </Button>
             <Button variant="outline" asChild>

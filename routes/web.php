@@ -10,6 +10,7 @@ use App\Http\Controllers\Household\PayeeRuleController;
 use App\Http\Controllers\Household\PlanController;
 use App\Http\Controllers\Household\ReconciliationController;
 use App\Http\Controllers\Household\RecurringController;
+use App\Http\Controllers\Household\ReportController;
 use App\Http\Controllers\Household\TransactionController;
 use App\Http\Controllers\Household\TransferController;
 use App\Http\Middleware\EnsureEmailIsAllowlisted;
@@ -70,6 +71,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/household/recurring', [RecurringController::class, 'index'])->name('household.recurring.index');
     Route::post('/household/recurring', [RecurringController::class, 'store'])->name('household.recurring.store');
     Route::patch('/household/recurring/{recurringSchedule}', [RecurringController::class, 'update'])->name('household.recurring.update');
+
+    Route::get('/household/reports', [ReportController::class, 'index'])->name('household.reports.index');
+    Route::get('/household/reports/export', [ReportController::class, 'export'])->name('household.reports.export');
+    Route::post('/household/reports', [ReportController::class, 'store'])->name('household.reports.store');
+    Route::delete('/household/reports/{savedReport}', [ReportController::class, 'destroy'])->name('household.reports.destroy');
 
     Route::get('/household/goals', [GoalController::class, 'index'])->name('household.goals.index');
     Route::post('/household/goals', [GoalController::class, 'store'])->name('household.goals.store');
