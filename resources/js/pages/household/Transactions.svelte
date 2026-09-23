@@ -25,6 +25,7 @@
     import { Label } from '@/components/ui/label';
     import { toUrl } from '@/lib/utils';
     import { index as importCsv } from '@/routes/household/import';
+    import { index as recurring } from '@/routes/household/recurring';
     import { index as rules } from '@/routes/household/rules';
     import { index as transfers } from '@/routes/household/transfers';
     import { TransactionEntryState } from './TransactionEntryState.svelte';
@@ -317,6 +318,11 @@
             <Button variant="outline" asChild>
                 {#snippet children(props)}
                     <Link href={toUrl(rules())} class={props.class}>Rules</Link>
+                {/snippet}
+            </Button>
+            <Button variant="outline" asChild>
+                {#snippet children(props)}
+                    <Link href={toUrl(recurring())} class={props.class}>Recurring</Link>
                 {/snippet}
             </Button>
             <Button variant="outline" asChild>
