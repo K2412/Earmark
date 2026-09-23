@@ -61,7 +61,7 @@ test('staging a csv creates an upload and staged rows but no ledger rows', funct
             ['date' => '2026-06-01', 'payee' => 'Loblaws', 'amount' => '-72.50'],
             ['date' => '2026-06-02', 'payee' => 'Payroll', 'amount' => '2000.00'],
         ]))
-        ->assertRedirect(route('household.import.index'))
+        ->assertRedirect(route('household.import.review', StatementUpload::sole()))
         ->assertSessionHasNoErrors();
 
     $this->assertDatabaseHas('statement_uploads', [

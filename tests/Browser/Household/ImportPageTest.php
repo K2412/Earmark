@@ -16,7 +16,7 @@ it('imports a CSV statement into staging without touching the ledger', function 
         ->assertSee('-$72.50')
         ->assertSee('$2,000.00')
         ->click('@import-submit')
-        ->assertPathIs('/household/import')
+        ->assertSee('Review import')
         ->assertNoJavaScriptErrors();
 
     $this->assertDatabaseHas('staged_transactions', [

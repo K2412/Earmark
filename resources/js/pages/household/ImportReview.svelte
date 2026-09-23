@@ -1,0 +1,415 @@
+<script module lang="ts">
+    import { index } from '@/routes/household/import';
+
+    export const layout = {
+        breadcrumbs: [
+            {
+                title: 'Import',
+                href: index(),
+            },
+        ],
+    };
+</script>
+
+<script lang="ts">
+    import { router } from '@inertiajs/svelte';
+    import { untrack } from 'svelte';
+    import ImportController from '@/actions/App/Http/Controllers/Household/ImportController';
+    import AppHead from '@/components/AppHead.svelte';
+    import ErrorSummary from '@/components/ErrorSummary.svelte';
+    import Heading from '@/components/Heading.svelte';
+    import { Button } from '@/components/ui/button';
+    import { Input } from '@/components/ui/input';
+    import { Label } from '@/components/ui/label';
+    import { formatCents } from '@/lib/importCsv';
+
+    type Option = { id: string; name: string };
+
+    type ServerSplit = {
+        category_id: string | null;
+        bucket_id: string;
+        amount: number;
+        memo: string | null;
+    };
+
+    type ServerRow = {
+        id: string;
+        date: string;
+        payee: string;
+        raw_payee: string;
+        amount: number;
+        amount_formatted: string;
+        status: string;
+        accept: boolean;
+        is_possible_duplicate: boolean;
+        duplicate_reason: string | null;
+        is_split: boolean;
+        final_category_id: string | null;
+        final_bucket_id: string | null;
+        splits: ServerSplit[];
+    };
+
+    type EditSplit = { bucket_id: string; category_id: string; amount: number; memo: string };
+
+    type EditRow = {
+        id: string;
+        date: string;
+        payee: string;
+        amount: number;
+        amountFormatted: string;
+        rawPayee: string;
+        status: string;
+        accept: boolean;
+        isPossibleDuplicate: boolean;
+        duplicateReason: string | null;
+        categoryId: string;
+        bucketId: string;
+        isSplit: boolean;
+        splits: EditSplit[];
+    };
+
+    let {
+        upload,
+        rows,
+        categories,
+        buckets,
+    }: {
+        upload: {
+            id: string;
+            filename: string;
+            status: string;
+            parsed_count: number;
+            imported_count: number;
+        };
+        rows: ServerRow[];
+        categories: Option[];
+        buckets: Option[];
+    } = $props();
+
+    const selectClass =
+        'flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm';
+
+    function toEdit(row: ServerRow): EditRow {
+        return {
+            id: row.id,
+            date: row.date,
+            payee: row.payee,
+            amount: row.amount,
+            amountFormatted: row.amount_formatted,
+            rawPayee: row.raw_payee,
+            status: row.status,
+            accept: row.accept,
+            isPossibleDuplicate: row.is_possible_duplicate,
+            duplicateReason: row.duplicate_reason,
+            categoryId: row.final_category_id ?? '',
+            bucketId: row.final_bucket_id ?? '',
+            isSplit: row.is_split,
+            splits: row.splits.map((split) => ({
+                bucket_id: split.bucket_id,
+                category_id: split.category_id ?? '',
+                amount: split.amount,
+                memo: split.memo ?? '',
+            })),
+        };
+    }
+
+    function signature(serverRows: ServerRow[]): string {
+        return serverRows.map((row) => `${row.id}:${row.status}`).join('|');
+    }
+
+    let editRows = $state<EditRow[]>(untrack(() => rows.map(toEdit)));
+    let errors = $state<Record<string, string>>({});
+    let processing = $state(false);
+    let lastSignature = untrack(() => signature(rows));
+
+    // Re-seed local edits only when the server rows actually change (after a save
+    // or promotion round-trip), never mid-edit.
+    $effect(() => {
+        const current = signature(rows);
+
+        untrack(() => {
+            if (current !== lastSignature) {
+                lastSignature = current;
+                editRows = rows.map(toEdit);
+            }
+        });
+    });
+
+    function splitSum(row: EditRow): number {
+        return row.splits.reduce((total, split) => total + (Number(split.amount) || 0), 0);
+    }
+
+    function toggleSplit(row: EditRow): void {
+        row.isSplit = !row.isSplit;
+
+        if (row.isSplit && row.splits.length === 0) {
+            row.splits = [{ bucket_id: '', category_id: '', amount: row.amount, memo: '' }];
+        }
+
+        if (!row.isSplit) {
+            row.splits = [];
+        }
+    }
+
+    function addSplit(row: EditRow): void {
+        row.splits = [...row.splits, { bucket_id: '', category_id: '', amount: 0, memo: '' }];
+    }
+
+    function removeSplit(row: EditRow, index: number): void {
+        row.splits = row.splits.filter((_, i) => i !== index);
+
+        if (row.splits.length === 0) {
+            row.isSplit = false;
+        }
+    }
+
+    function toggleReject(row: EditRow): void {
+        if (row.status === 'rejected') {
+            row.status = 'pending';
+        } else {
+            row.status = 'rejected';
+            row.accept = false;
+        }
+    }
+
+    const pendingRows = $derived(editRows.filter((row) => row.status !== 'promoted'));
+    const promotedCount = $derived(rows.filter((row) => row.status === 'promoted').length);
+
+    function save(): void {
+        processing = true;
+
+        const payload = pendingRows.map((row) => ({
+            id: row.id,
+            date: row.date,
+            payee: row.payee,
+            amount: Number(row.amount),
+            final_category_id: row.isSplit ? null : row.categoryId || null,
+            final_bucket_id: row.isSplit ? null : row.bucketId || null,
+            accept: row.accept,
+            status: row.status,
+            splits: row.isSplit
+                ? row.splits.map((split) => ({
+                      bucket_id: split.bucket_id,
+                      category_id: split.category_id || null,
+                      amount: Number(split.amount),
+                      memo: split.memo || null,
+                  }))
+                : [],
+        }));
+
+        router.patch(
+            ImportController.updateStaged(upload.id).url,
+            { rows: payload },
+            {
+                preserveScroll: true,
+                onError: (formErrors) => (errors = formErrors),
+                onSuccess: () => (errors = {}),
+                onFinish: () => (processing = false),
+            },
+        );
+    }
+
+    function promote(): void {
+        processing = true;
+
+        router.post(
+            ImportController.promote(upload.id).url,
+            {},
+            {
+                preserveScroll: true,
+                onError: (formErrors) => (errors = formErrors),
+                onFinish: () => (processing = false),
+            },
+        );
+    }
+</script>
+
+<AppHead title="Review import" />
+
+<div class="flex flex-col gap-6 p-4">
+    <Heading
+        title="Review import"
+        description={`${upload.filename} · ${upload.parsed_count} staged · ${upload.imported_count} promoted`}
+    />
+
+    <ErrorSummary
+        errors={Object.entries(errors).map(([fieldId, message]) => ({
+            fieldId,
+            message,
+        }))}
+    />
+
+    <div class="flex flex-col gap-4">
+        {#each editRows as row, index (row.id)}
+            {#if row.status === 'promoted'}
+                <div
+                    class="flex items-center justify-between rounded-xl border bg-muted/30 p-4 text-sm"
+                    data-test="review-row"
+                >
+                    <span>{row.date} · {row.payee}</span>
+                    <span class="flex items-center gap-3">
+                        <span class="font-mono">{row.amountFormatted}</span>
+                        <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">
+                            Promoted
+                        </span>
+                    </span>
+                </div>
+            {:else}
+                <div
+                    class="flex flex-col gap-3 rounded-xl border p-4 {row.status === 'rejected' ? 'opacity-60' : ''}"
+                    data-test="review-row"
+                >
+                    {#if row.isPossibleDuplicate}
+                        <p class="rounded-md bg-amber-100 px-3 py-2 text-xs text-amber-900">
+                            Possible duplicate: {row.duplicateReason}
+                        </p>
+                    {/if}
+
+                    <div class="grid gap-3 md:grid-cols-4">
+                        <div class="grid gap-1">
+                            <Label for={`date-${index}`}>Date</Label>
+                            <Input id={`date-${index}`} type="date" bind:value={row.date} />
+                        </div>
+                        <div class="grid gap-1 md:col-span-2">
+                            <Label for={`payee-${index}`}>Payee</Label>
+                            <Input id={`payee-${index}`} bind:value={row.payee} />
+                        </div>
+                        <div class="grid gap-1">
+                            <Label for={`amount-${index}`}>Amount (cents)</Label>
+                            <Input id={`amount-${index}`} type="number" step="1" bind:value={row.amount} />
+                        </div>
+                    </div>
+
+                    {#if !row.isSplit}
+                        <div class="grid gap-3 md:grid-cols-2">
+                            <div class="grid gap-1">
+                                <Label for={`category-${index}`}>Category</Label>
+                                <select
+                                    id={`category-${index}`}
+                                    class={selectClass}
+                                    bind:value={row.categoryId}
+                                >
+                                    <option value="">(none)</option>
+                                    {#each categories as category (category.id)}
+                                        <option value={category.id}>{category.name}</option>
+                                    {/each}
+                                </select>
+                            </div>
+                            <div class="grid gap-1">
+                                <Label for={`bucket-${index}`}>Bucket</Label>
+                                <select
+                                    id={`bucket-${index}`}
+                                    class={selectClass}
+                                    bind:value={row.bucketId}
+                                >
+                                    <option value="">(none)</option>
+                                    {#each buckets as bucket (bucket.id)}
+                                        <option value={bucket.id}>{bucket.name}</option>
+                                    {/each}
+                                </select>
+                            </div>
+                        </div>
+                    {:else}
+                        <div class="flex flex-col gap-2 rounded-lg border border-dashed p-3">
+                            {#each row.splits as split, splitIndex (splitIndex)}
+                                <div class="grid items-end gap-2 md:grid-cols-[1fr_1fr_140px_auto]">
+                                    <div class="grid gap-1">
+                                        <Label for={`split-bucket-${index}-${splitIndex}`}>Bucket</Label>
+                                        <select
+                                            id={`split-bucket-${index}-${splitIndex}`}
+                                            class={selectClass}
+                                            bind:value={split.bucket_id}
+                                        >
+                                            <option value="">Select a bucket</option>
+                                            {#each buckets as bucket (bucket.id)}
+                                                <option value={bucket.id}>{bucket.name}</option>
+                                            {/each}
+                                        </select>
+                                    </div>
+                                    <div class="grid gap-1">
+                                        <Label for={`split-category-${index}-${splitIndex}`}>Category</Label>
+                                        <select
+                                            id={`split-category-${index}-${splitIndex}`}
+                                            class={selectClass}
+                                            bind:value={split.category_id}
+                                        >
+                                            <option value="">(none)</option>
+                                            {#each categories as category (category.id)}
+                                                <option value={category.id}>{category.name}</option>
+                                            {/each}
+                                        </select>
+                                    </div>
+                                    <div class="grid gap-1">
+                                        <Label for={`split-amount-${index}-${splitIndex}`}>Amount</Label>
+                                        <Input
+                                            id={`split-amount-${index}-${splitIndex}`}
+                                            type="number"
+                                            step="1"
+                                            bind:value={split.amount}
+                                        />
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onclick={() => removeSplit(row, splitIndex)}
+                                    >
+                                        Remove
+                                    </Button>
+                                </div>
+                            {/each}
+                            <div class="flex items-center justify-between text-xs">
+                                <Button type="button" variant="outline" onclick={() => addSplit(row)}>
+                                    Add allocation
+                                </Button>
+                                <span
+                                    class={splitSum(row) === Number(row.amount)
+                                        ? 'text-muted-foreground'
+                                        : 'text-red-600'}
+                                >
+                                    Allocated {formatCents(splitSum(row))} of {row.amountFormatted}
+                                </span>
+                            </div>
+                        </div>
+                    {/if}
+
+                    <div class="flex flex-wrap items-center gap-4">
+                        <label class="flex items-center gap-2 text-sm">
+                            <input type="checkbox" bind:checked={row.accept} disabled={row.status === 'rejected'} />
+                            Import this row
+                        </label>
+                        <Button type="button" variant="outline" onclick={() => toggleSplit(row)}>
+                            {row.isSplit ? 'Remove split' : 'Split'}
+                        </Button>
+                        <Button type="button" variant="ghost" onclick={() => toggleReject(row)}>
+                            {row.status === 'rejected' ? 'Restore' : 'Reject'}
+                        </Button>
+                    </div>
+                </div>
+            {/if}
+        {/each}
+    </div>
+
+    <div class="flex items-center justify-end gap-3">
+        <Button
+            type="button"
+            variant="outline"
+            onclick={save}
+            disabled={processing || pendingRows.length === 0}
+            data-test="review-save"
+        >
+            Save corrections
+        </Button>
+        <Button
+            type="button"
+            onclick={promote}
+            disabled={processing || pendingRows.length === 0}
+            data-test="review-promote"
+        >
+            Promote accepted
+        </Button>
+    </div>
+
+    {#if promotedCount > 0 && pendingRows.length === 0}
+        <p class="text-sm text-muted-foreground">All rows have been promoted to the ledger.</p>
+    {/if}
+</div>

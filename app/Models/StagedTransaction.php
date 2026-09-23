@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StagedTransaction extends Model
 {
@@ -25,6 +26,7 @@ class StagedTransaction extends Model
         'final_category_id',
         'final_bucket_id',
         'accept',
+        'status',
         'is_possible_duplicate',
         'duplicate_reason',
         'duplicate_of_transaction_id',
@@ -52,6 +54,14 @@ class StagedTransaction extends Model
     public function statementUpload(): BelongsTo
     {
         return $this->belongsTo(StatementUpload::class);
+    }
+
+    /**
+     * @return HasMany<StagedTransactionSplit, $this>
+     */
+    public function splits(): HasMany
+    {
+        return $this->hasMany(StagedTransactionSplit::class);
     }
 
     /**

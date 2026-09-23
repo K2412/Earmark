@@ -30,6 +30,7 @@ class StagedTransactionFactory extends Factory
             'final_category_id' => null,
             'final_bucket_id' => null,
             'accept' => true,
+            'status' => 'pending',
             'is_possible_duplicate' => false,
             'duplicate_reason' => null,
             'duplicate_of_transaction_id' => null,
