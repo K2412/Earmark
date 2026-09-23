@@ -9,6 +9,7 @@ use App\Models\StatementUpload;
 use App\Models\User;
 use App\Services\Import\CsvImportNormalizer;
 use App\Services\Import\DuplicateDetector;
+use App\Services\Payee\PayeeHistoryService;
 use App\Services\Payee\PayeeRuleService;
 use App\Support\Import\DraftRow;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +28,7 @@ class StageStatementImport
     public function __construct(
         private DuplicateDetector $duplicates,
         private PayeeRuleService $payeeRules,
+        private PayeeHistoryService $payeeHistory,
     ) {}
 
     /**
@@ -64,9 +66,21 @@ class StageStatementImport
                 'uploaded_at' => now(),
             ]);
 
+            $history = $this->payeeHistory->mapFor(
+                array_map(fn (DraftRow $draft): string => $draft->payee, $drafts),
+                $household,
+            );
+
             foreach ($this->duplicates->inspect($account, $drafts) as $row) {
                 $draft = $row['draft'];
-                $suggestion = $this->payeeRules->suggest($draft->payee, $household);
+
+                // Explicit payee rules win per field; the household's own history for
+                // this payee fills anything a rule doesn't cover (#1270).
+                $rule = $this->payeeRules->suggest($draft->payee, $household);
+                $previous = $history[$this->payeeHistory->key($draft->payee)] ?? null;
+                $categoryId = $rule['category_id'] ?? $previous['category_id'] ?? null;
+                $bucketId = $rule['bucket_id'] ?? $previous['bucket_id'] ?? null;
+
                 $isDuplicate = $row['reason'] !== null;
 
                 StagedTransaction::query()->create([
@@ -77,10 +91,10 @@ class StageStatementImport
                     'row_fingerprint' => $row['fingerprint'],
                     'external_id' => $draft->externalId,
                     'amount' => $draft->amountCents,
-                    'suggested_category_id' => $suggestion['category_id'],
-                    'suggested_bucket_id' => $suggestion['bucket_id'],
-                    'final_category_id' => $suggestion['category_id'],
-                    'final_bucket_id' => $suggestion['bucket_id'],
+                    'suggested_category_id' => $categoryId,
+                    'suggested_bucket_id' => $bucketId,
+                    'final_category_id' => $categoryId,
+                    'final_bucket_id' => $bucketId,
                     'accept' => ! $isDuplicate,
                     'is_possible_duplicate' => $isDuplicate,
                     'duplicate_reason' => $row['reason'],
