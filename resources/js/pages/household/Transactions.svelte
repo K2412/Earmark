@@ -195,6 +195,9 @@
     function startEdit(row: Row): void {
         editingId = row.id;
         editErrors = {};
+        splitMode = false;
+        splitRows = [];
+        splitAmount = row.amount;
         editForm = {
             date: row.date,
             account_id: row.account_id ?? '',
@@ -243,6 +246,58 @@
         }
 
         router.delete(TransactionController.destroy(row.id).url, { preserveScroll: true });
+    }
+
+    // Split editing for the row currently open in the edit panel.
+    type SplitAllocation = { bucket_id: string; category_id: string; amount: number };
+    let splitMode = $state(false);
+    let splitRows = $state<SplitAllocation[]>([]);
+    let splitAmount = $state(0);
+
+    function beginSplit(): void {
+        splitMode = true;
+        if (splitRows.length === 0) {
+            splitRows = [{ bucket_id: '', category_id: '', amount: splitAmount }];
+        }
+    }
+
+    function addAllocation(): void {
+        splitRows = [...splitRows, { bucket_id: '', category_id: '', amount: 0 }];
+    }
+
+    function removeAllocation(i: number): void {
+        splitRows = splitRows.filter((_, index) => index !== i);
+    }
+
+    const splitTotal = $derived(splitRows.reduce((sum, s) => sum + (Number(s.amount) || 0), 0));
+
+    function saveSplit(): void {
+        if (editingId === null) {
+            return;
+        }
+
+        router.post(
+            TransactionController.split(editingId).url,
+            {
+                splits: splitMode
+                    ? splitRows.map((s) => ({
+                          bucket_id: s.bucket_id,
+                          category_id: s.category_id || null,
+                          amount: Number(s.amount),
+                      }))
+                    : [],
+            },
+            {
+                preserveScroll: true,
+                onError: (errors) => (editErrors = errors),
+                onSuccess: () => {
+                    editingId = null;
+                    splitMode = false;
+                    splitRows = [];
+                    editErrors = {};
+                },
+            },
+        );
     }
 </script>
 
@@ -533,6 +588,47 @@
                     <input type="checkbox" bind:checked={editForm.reviewed} /> Reviewed
                 </label>
             </div>
+            <div class="rounded-lg border border-dashed p-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium">Split across buckets</span>
+                    {#if !splitMode}
+                        <Button type="button" variant="outline" onclick={beginSplit} data-test="begin-split">
+                            Split
+                        </Button>
+                    {/if}
+                </div>
+                {#if splitMode}
+                    <InputError message={editErrors.splits} />
+                    {#each splitRows as split, i (i)}
+                        <div class="mt-2 grid items-end gap-2 md:grid-cols-[1fr_1fr_110px_auto]">
+                            <select class={selectClass} bind:value={split.bucket_id}>
+                                <option value="">Bucket</option>
+                                {#each buckets as bucket (bucket.id)}
+                                    <option value={bucket.id}>{bucket.name}</option>
+                                {/each}
+                            </select>
+                            <select class={selectClass} bind:value={split.category_id}>
+                                <option value="">(no category)</option>
+                                {#each categories as category (category.id)}
+                                    <option value={category.id}>{category.name}</option>
+                                {/each}
+                            </select>
+                            <Input type="number" step="1" bind:value={split.amount} />
+                            <Button type="button" variant="ghost" onclick={() => removeAllocation(i)}>Remove</Button>
+                        </div>
+                    {/each}
+                    <div class="mt-2 flex items-center justify-between text-xs">
+                        <Button type="button" variant="outline" onclick={addAllocation}>Add allocation</Button>
+                        <span class={splitTotal === Number(editForm.amount) ? 'text-muted-foreground' : 'text-red-600'}>
+                            Allocated {splitTotal} / {editForm.amount} cents
+                        </span>
+                    </div>
+                    <div class="mt-2 flex justify-end">
+                        <Button type="button" onclick={saveSplit} data-test="save-split">Save split</Button>
+                    </div>
+                {/if}
+            </div>
+
             <div class="flex justify-end gap-2">
                 <Button type="button" variant="ghost" onclick={() => (editingId = null)}>Cancel</Button>
                 <Button type="button" onclick={saveEdit} data-test="save-edit">Save</Button>

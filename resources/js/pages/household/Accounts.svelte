@@ -12,7 +12,7 @@
 </script>
 
 <script lang="ts">
-    import { Form, router } from '@inertiajs/svelte';
+    import { Form, Link, router } from '@inertiajs/svelte';
     import AccountController from '@/actions/App/Http/Controllers/Household/AccountController';
     import ActionableEmptyState from '@/components/ActionableEmptyState.svelte';
     import AppHead from '@/components/AppHead.svelte';
@@ -22,6 +22,8 @@
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
+    import { toUrl } from '@/lib/utils';
+    import { index as reconcile } from '@/routes/household/reconcile';
 
     type Account = {
         id: string;
@@ -144,13 +146,20 @@
 <div class="flex flex-col gap-6 p-4">
     <div class="flex items-center justify-between">
         <Heading title="Accounts" />
-        <Button
-            type="button"
-            data-test="open-create-account"
-            onclick={() => (showForm = true)}
-        >
-            Add account
-        </Button>
+        <div class="flex gap-2">
+            <Button variant="outline" asChild>
+                {#snippet children(props)}
+                    <Link href={toUrl(reconcile())} class={props.class}>Reconcile</Link>
+                {/snippet}
+            </Button>
+            <Button
+                type="button"
+                data-test="open-create-account"
+                onclick={() => (showForm = true)}
+            >
+                Add account
+            </Button>
+        </div>
     </div>
 
     {#if accounts.length === 0 && !showForm}

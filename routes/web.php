@@ -7,6 +7,7 @@ use App\Http\Controllers\Household\MemberController;
 use App\Http\Controllers\Household\NetWorthController;
 use App\Http\Controllers\Household\PayeeRuleController;
 use App\Http\Controllers\Household\PlanController;
+use App\Http\Controllers\Household\ReconciliationController;
 use App\Http\Controllers\Household\TransactionController;
 use App\Http\Controllers\Household\TransferController;
 use App\Http\Middleware\EnsureEmailIsAllowlisted;
@@ -40,6 +41,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/household/transactions/payee-suggestion', [TransactionController::class, 'suggest'])->name('household.transactions.suggest');
     Route::post('/household/transactions/review', [TransactionController::class, 'review'])->name('household.transactions.review');
     Route::patch('/household/transactions/{transaction}', [TransactionController::class, 'update'])->name('household.transactions.update');
+    Route::post('/household/transactions/{transaction}/split', [TransactionController::class, 'split'])->name('household.transactions.split');
     Route::delete('/household/transactions/{transaction}', [TransactionController::class, 'destroy'])->name('household.transactions.destroy');
 
     Route::get('/household/import', [ImportController::class, 'index'])->name('household.import.index');
@@ -58,7 +60,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/household/transfers', [TransferController::class, 'index'])->name('household.transfers.index');
     Route::post('/household/transfers', [TransferController::class, 'store'])->name('household.transfers.store');
+    Route::patch('/household/transfers/{transaction}', [TransferController::class, 'update'])->name('household.transfers.update');
     Route::delete('/household/transfers/{transaction}', [TransferController::class, 'destroy'])->name('household.transfers.destroy');
+
+    Route::get('/household/reconcile', [ReconciliationController::class, 'index'])->name('household.reconcile.index');
+    Route::post('/household/reconcile/preview', [ReconciliationController::class, 'preview'])->name('household.reconcile.preview');
+    Route::post('/household/reconcile', [ReconciliationController::class, 'store'])->name('household.reconcile.store');
 
     Route::get('/household/net-worth', [NetWorthController::class, 'show'])->name('household.net-worth.show');
     Route::post('/household/net-worth/positions', [NetWorthController::class, 'storePosition'])->name('household.net-worth.positions.store');

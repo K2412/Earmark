@@ -12,7 +12,7 @@
 </script>
 
 <script lang="ts">
-    import { Form, Link } from '@inertiajs/svelte';
+    import { Form, Link, router } from '@inertiajs/svelte';
     import TransferController from '@/actions/App/Http/Controllers/Household/TransferController';
     import ActionableEmptyState from '@/components/ActionableEmptyState.svelte';
     import AppHead from '@/components/AppHead.svelte';
@@ -25,26 +25,78 @@
     import { toUrl } from '@/lib/utils';
     import { index as transactions } from '@/routes/household/transactions';
 
+    type Transfer = {
+        id: string;
+        date: string;
+        from: string | null;
+        to: string;
+        from_account_id: string | null;
+        to_account_id: string | null;
+        amount: number;
+        amount_formatted: string;
+        memo: string | null;
+    };
+
     let {
         transfers,
         accounts,
         defaults,
     }: {
-        transfers: {
-            id: string;
-            date: string;
-            from: string | null;
-            to: string;
-            amount: string;
-        }[];
+        transfers: Transfer[];
         accounts: { id: string; name: string }[];
         defaults: { date: string };
     } = $props();
 
     let showForm = $state(false);
+    let editingId = $state<string | null>(null);
+    let editErrors = $state<Record<string, string>>({});
+    let editForm = $state({
+        date: '',
+        from_account_id: '',
+        to_account_id: '',
+        amount: 0,
+        memo: '',
+    });
 
     const selectClass =
         'flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm';
+
+    function startEdit(transfer: Transfer): void {
+        editingId = transfer.id;
+        editErrors = {};
+        editForm = {
+            date: transfer.date,
+            from_account_id: transfer.from_account_id ?? '',
+            to_account_id: transfer.to_account_id ?? '',
+            amount: transfer.amount,
+            memo: transfer.memo ?? '',
+        };
+    }
+
+    function saveEdit(): void {
+        if (editingId === null) {
+            return;
+        }
+
+        router.patch(
+            TransferController.update(editingId).url,
+            {
+                date: editForm.date,
+                from_account_id: editForm.from_account_id,
+                to_account_id: editForm.to_account_id,
+                amount: Number(editForm.amount),
+                memo: editForm.memo || null,
+            },
+            {
+                preserveScroll: true,
+                onError: (errors) => (editErrors = errors),
+                onSuccess: () => {
+                    editingId = null;
+                    editErrors = {};
+                },
+            },
+        );
+    }
 </script>
 
 <AppHead title="Transfers" />
@@ -104,31 +156,86 @@
                             <td class="px-4 py-3">{transfer.from}</td>
                             <td class="px-4 py-3">{transfer.to}</td>
                             <td class="px-4 py-3 text-right font-mono">
-                                {transfer.amount}
+                                {transfer.amount_formatted}
                             </td>
                             <td class="px-4 py-3 text-right">
-                                <Form
-                                    {...TransferController.destroy.form(
-                                        transfer.id,
-                                    )}
-                                >
-                                    {#snippet children({ processing })}
-                                        <Button
-                                            type="submit"
-                                            variant="destructive"
-                                            size="sm"
-                                            disabled={processing}
-                                            data-test="destroy-transfer-{transfer.id}"
-                                        >
-                                            Delete
-                                        </Button>
-                                    {/snippet}
-                                </Form>
+                                <div class="flex justify-end gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onclick={() => startEdit(transfer)}
+                                    >
+                                        Edit
+                                    </Button>
+                                    <Form
+                                        {...TransferController.destroy.form(
+                                            transfer.id,
+                                        )}
+                                    >
+                                        {#snippet children({ processing })}
+                                            <Button
+                                                type="submit"
+                                                variant="destructive"
+                                                size="sm"
+                                                disabled={processing}
+                                                data-test="destroy-transfer-{transfer.id}"
+                                            >
+                                                Delete
+                                            </Button>
+                                        {/snippet}
+                                    </Form>
+                                </div>
                             </td>
                         </tr>
                     {/each}
                 </tbody>
             </table>
+        </div>
+    {/if}
+
+    {#if editingId !== null}
+        <div class="max-w-lg space-y-4 rounded-xl border p-4" data-test="edit-transfer">
+            <h2 class="font-semibold">Edit transfer</h2>
+            <ErrorSummary
+                errors={Object.entries(editErrors).map(([fieldId, message]) => ({ fieldId, message }))}
+            />
+            <div class="grid gap-2">
+                <Label for="edit-date">Date</Label>
+                <Input id="edit-date" type="date" bind:value={editForm.date} />
+                <InputError message={editErrors.date} />
+            </div>
+            <div class="grid gap-2">
+                <Label for="edit-from">From account</Label>
+                <select id="edit-from" class={selectClass} bind:value={editForm.from_account_id}>
+                    {#each accounts as account (account.id)}
+                        <option value={account.id}>{account.name}</option>
+                    {/each}
+                </select>
+                <InputError message={editErrors.from_account_id} />
+            </div>
+            <div class="grid gap-2">
+                <Label for="edit-to">To account</Label>
+                <select id="edit-to" class={selectClass} bind:value={editForm.to_account_id}>
+                    {#each accounts as account (account.id)}
+                        <option value={account.id}>{account.name}</option>
+                    {/each}
+                </select>
+                <InputError message={editErrors.to_account_id} />
+            </div>
+            <div class="grid gap-2">
+                <Label for="edit-amount">Amount (cents)</Label>
+                <Input id="edit-amount" type="number" min="1" step="1" bind:value={editForm.amount} />
+                <InputError message={editErrors.amount} />
+            </div>
+            <div class="grid gap-2">
+                <Label for="edit-memo">Memo (optional)</Label>
+                <Input id="edit-memo" bind:value={editForm.memo} />
+            </div>
+            <div class="flex justify-end gap-2">
+                <Button type="button" variant="ghost" onclick={() => (editingId = null)}>Cancel</Button>
+                <Button type="button" onclick={saveEdit} data-test="save-transfer">Save</Button>
+            </div>
         </div>
     {/if}
 

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Household;
 
 use App\Actions\Transactions\TransferFunds;
+use App\Actions\Transactions\UpdateTransfer;
 use App\Concerns\ResolvesHousehold;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Household\StoreTransferRequest;
+use App\Http\Requests\Household\UpdateTransferRequest;
 use App\Models\Transaction;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
@@ -44,7 +46,11 @@ class TransferController extends Controller
                 'date' => $out->date->toDateString(),
                 'from' => $out->account?->name,
                 'to' => $in?->account?->name ?? '—',
-                'amount' => Money::format(abs($out->amount)),
+                'from_account_id' => $out->account_id,
+                'to_account_id' => $in?->account_id,
+                'amount' => abs($out->amount),
+                'amount_formatted' => Money::format(abs($out->amount)),
+                'memo' => $out->memo,
             ];
         });
 
@@ -62,6 +68,15 @@ class TransferController extends Controller
         $action->handle($request->validated(), $request->user(), $this->household($request));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Transfer created.')]);
+
+        return to_route('household.transfers.index');
+    }
+
+    public function update(UpdateTransferRequest $request, Transaction $transaction, UpdateTransfer $action): RedirectResponse
+    {
+        $action->handle($transaction, $request->validated(), $request->user());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Transfer updated.')]);
 
         return to_route('household.transfers.index');
     }

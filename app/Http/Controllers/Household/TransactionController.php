@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Household;
 use App\Actions\Transactions\CreateTransaction;
 use App\Actions\Transactions\DeleteTransaction;
 use App\Actions\Transactions\MarkTransactionsReviewed;
+use App\Actions\Transactions\SplitTransaction;
 use App\Actions\Transactions\UpdateTransaction;
 use App\Concerns\ResolvesHousehold;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Household\BulkReviewRequest;
+use App\Http\Requests\Household\SplitTransactionRequest;
 use App\Http\Requests\Household\StoreTransactionRequest;
 use App\Http\Requests\Household\SuggestPayeeRequest;
 use App\Http\Requests\Household\UpdateTransactionRequest;
@@ -129,6 +131,15 @@ class TransactionController extends Controller
         $action->handle($transaction, $request->user());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Transaction deleted.')]);
+
+        return back();
+    }
+
+    public function split(SplitTransactionRequest $request, Transaction $transaction, SplitTransaction $action): RedirectResponse
+    {
+        $action->handle($transaction, $request->validated('splits'), $request->user());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Split saved.')]);
 
         return back();
     }
