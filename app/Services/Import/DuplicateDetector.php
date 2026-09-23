@@ -21,15 +21,35 @@ class DuplicateDetector
      */
     public function inspect(Account $account, array $drafts): array
     {
-        $seen = [];
+        $seenFingerprints = [];
+        $seenExternalIds = [];
         $results = [];
 
         foreach ($drafts as $draft) {
             $fingerprint = $this->fingerprint($account->id, $draft);
+            $externalId = ($draft->externalId !== null && $draft->externalId !== '') ? $draft->externalId : null;
             $duplicateOfId = null;
             $reason = null;
 
-            if (isset($seen[$fingerprint])) {
+            if ($externalId !== null) {
+                // A bank-assigned id (OFX FITID) is authoritative: match on it exactly
+                // rather than on date + amount, which can collide for distinct payments.
+                if (isset($seenExternalIds[$externalId])) {
+                    $reason = 'Appears more than once in this file.';
+                } else {
+                    $existing = Transaction::query()
+                        ->where('account_id', $account->id)
+                        ->where('external_id', $externalId)
+                        ->first();
+
+                    if ($existing !== null) {
+                        $reason = sprintf('Matches an already-imported transaction (bank id %s).', $externalId);
+                        $duplicateOfId = $existing->id;
+                    }
+                }
+
+                $seenExternalIds[$externalId] = true;
+            } elseif (isset($seenFingerprints[$fingerprint])) {
                 $reason = 'Appears more than once in this file.';
             } else {
                 $existing = Transaction::query()
@@ -48,7 +68,7 @@ class DuplicateDetector
                 }
             }
 
-            $seen[$fingerprint] = true;
+            $seenFingerprints[$fingerprint] = true;
 
             $results[] = [
                 'draft' => $draft,

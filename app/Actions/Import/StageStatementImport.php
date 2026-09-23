@@ -75,6 +75,7 @@ class StageStatementImport
                     'payee' => $draft->payee,
                     'raw_payee' => $draft->rawPayee,
                     'row_fingerprint' => $row['fingerprint'],
+                    'external_id' => $draft->externalId,
                     'amount' => $draft->amountCents,
                     'suggested_category_id' => $suggestion['category_id'],
                     'suggested_bucket_id' => $suggestion['bucket_id'],

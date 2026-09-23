@@ -20,6 +20,7 @@ class StagedTransaction extends Model
         'payee',
         'raw_payee',
         'row_fingerprint',
+        'external_id',
         'amount',
         'suggested_category_id',
         'suggested_bucket_id',

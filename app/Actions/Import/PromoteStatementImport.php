@@ -75,7 +75,12 @@ class PromoteStatementImport
             return;
         }
 
-        $source = $upload->source === 'csv' ? 'imported_csv' : 'imported_pdf';
+        $source = match ($upload->source) {
+            'csv' => 'imported_csv',
+            'qif' => 'imported_qif',
+            'ofx', 'qfx', 'qbo' => 'imported_ofx',
+            default => 'imported_pdf',
+        };
 
         if ($row->is_split) {
             $transaction = Transaction::query()->create([
@@ -87,6 +92,7 @@ class PromoteStatementImport
                 'is_split' => true,
                 'source' => $source,
                 'import_batch_id' => $upload->id,
+                'external_id' => $row->external_id,
                 'created_by_user_id' => $user->id,
                 'cleared' => false,
             ]);
@@ -110,6 +116,7 @@ class PromoteStatementImport
                 'amount' => $row->amount,
                 'source' => $source,
                 'import_batch_id' => $upload->id,
+                'external_id' => $row->external_id,
             ], $user, $household);
         }
 
