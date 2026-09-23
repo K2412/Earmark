@@ -25,6 +25,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/household/accounts', [AccountController::class, 'index'])->name('household.accounts.index');
     Route::post('/household/accounts', [AccountController::class, 'store'])->name('household.accounts.store');
+    Route::post('/household/accounts/reorder', [AccountController::class, 'reorder'])->name('household.accounts.reorder');
+    Route::patch('/household/accounts/{account}', [AccountController::class, 'update'])->name('household.accounts.update');
+    Route::post('/household/accounts/{account}/archive', [AccountController::class, 'archive'])->name('household.accounts.archive');
+    Route::post('/household/accounts/{account}/restore', [AccountController::class, 'restore'])->name('household.accounts.restore');
 
     Route::get('/household/plan', [PlanController::class, 'index'])->name('household.plan.index');
     Route::post('/household/plan/buckets', [PlanController::class, 'storeBucket'])->name('household.plan.buckets.store');

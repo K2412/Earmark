@@ -7,9 +7,18 @@ use App\Models\Account;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreAccountRequest extends FormRequest
+class UpdateAccountRequest extends FormRequest
 {
     use AuthorizesHousehold;
+
+    public function authorize(): bool
+    {
+        $account = $this->route('account');
+
+        return $account instanceof Account
+            && ($this->user()?->can('view', $this->household()) ?? false)
+            && $account->household_id === $this->household()->id;
+    }
 
     /**
      * @return array<string, mixed>
