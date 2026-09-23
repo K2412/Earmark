@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Household\AccountController;
 use App\Http\Controllers\Household\AssumptionController;
+use App\Http\Controllers\Household\CategoryController;
 use App\Http\Controllers\Household\DashboardController;
 use App\Http\Controllers\Household\GoalController;
 use App\Http\Controllers\Household\HoldingController;
@@ -56,6 +57,8 @@ Route::middleware(['auth', 'verified', EnsureAdvisorReadOnly::class])->group(fun
     Route::post('/household/transactions/{transaction}/split', [TransactionController::class, 'split'])->name('household.transactions.split');
     Route::post('/household/transactions/{transaction}/assign', [TransactionController::class, 'assign'])->name('household.transactions.assign');
     Route::delete('/household/transactions/{transaction}', [TransactionController::class, 'destroy'])->name('household.transactions.destroy');
+
+    Route::post('/household/categories', [CategoryController::class, 'store'])->name('household.categories.store');
 
     Route::get('/household/import', [ImportController::class, 'index'])->name('household.import.index');
     Route::post('/household/import', [ImportController::class, 'store'])->name('household.import.store');
