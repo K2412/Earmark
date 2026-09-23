@@ -197,6 +197,30 @@
     const pendingRows = $derived(editRows.filter((row) => row.status !== 'promoted'));
     const promotedCount = $derived(rows.filter((row) => row.status === 'promoted').length);
 
+    type StatusFilter = 'all' | 'pending' | 'promoted' | 'rejected';
+
+    const FILTERS: { value: StatusFilter; label: string }[] = [
+        { value: 'all', label: 'All' },
+        { value: 'pending', label: 'Pending' },
+        { value: 'promoted', label: 'Promoted' },
+        { value: 'rejected', label: 'Rejected' },
+    ];
+
+    let statusFilter = $state<StatusFilter>('all');
+
+    const counts = $derived({
+        all: editRows.length,
+        pending: editRows.filter((row) => row.status === 'pending').length,
+        promoted: editRows.filter((row) => row.status === 'promoted').length,
+        rejected: editRows.filter((row) => row.status === 'rejected').length,
+    });
+
+    const visibleRows = $derived(
+        statusFilter === 'all'
+            ? editRows
+            : editRows.filter((row) => row.status === statusFilter),
+    );
+
     function save(): void {
         processing = true;
 
@@ -311,8 +335,30 @@
         </Button>
     </div>
 
+    <div class="flex flex-wrap gap-2" data-test="status-filter">
+        {#each FILTERS as filter (filter.value)}
+            <Button
+                type="button"
+                size="sm"
+                variant={statusFilter === filter.value ? 'default' : 'outline'}
+                onclick={() => (statusFilter = filter.value)}
+                data-test={`filter-${filter.value}`}
+            >
+                {filter.label} ({counts[filter.value]})
+            </Button>
+        {/each}
+    </div>
+
     <div class="flex flex-col gap-4">
-        {#each editRows as row, index (row.id)}
+        {#if visibleRows.length === 0}
+            <p
+                class="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground"
+                data-test="empty-filter"
+            >
+                No {statusFilter === 'all' ? '' : statusFilter} rows to show.
+            </p>
+        {/if}
+        {#each visibleRows as row (row.id)}
             {#if row.status === 'promoted'}
                 <div
                     class="flex items-center justify-between rounded-xl border bg-muted/30 p-4 text-sm"
@@ -331,6 +377,23 @@
                     class="flex flex-col gap-3 rounded-xl border p-4 {row.status === 'rejected' ? 'opacity-60' : ''}"
                     data-test="review-row"
                 >
+                    <div class="flex flex-wrap items-center gap-2">
+                        {#if row.status === 'rejected'}
+                            <span class="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-800">
+                                Rejected
+                            </span>
+                        {:else}
+                            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+                                Pending
+                            </span>
+                        {/if}
+                        {#if row.isPossibleDuplicate}
+                            <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900">
+                                Possible duplicate
+                            </span>
+                        {/if}
+                    </div>
+
                     {#if row.isPossibleDuplicate}
                         <p class="rounded-md bg-amber-100 px-3 py-2 text-xs text-amber-900">
                             Possible duplicate: {row.duplicateReason}
@@ -339,25 +402,25 @@
 
                     <div class="grid gap-3 md:grid-cols-4">
                         <div class="grid gap-1">
-                            <Label for={`date-${index}`}>Date</Label>
-                            <Input id={`date-${index}`} type="date" bind:value={row.date} />
+                            <Label for={`date-${row.id}`}>Date</Label>
+                            <Input id={`date-${row.id}`} type="date" bind:value={row.date} />
                         </div>
                         <div class="grid gap-1 md:col-span-2">
-                            <Label for={`payee-${index}`}>Payee</Label>
-                            <Input id={`payee-${index}`} bind:value={row.payee} />
+                            <Label for={`payee-${row.id}`}>Payee</Label>
+                            <Input id={`payee-${row.id}`} bind:value={row.payee} />
                         </div>
                         <div class="grid gap-1">
-                            <Label for={`amount-${index}`}>Amount (cents)</Label>
-                            <Input id={`amount-${index}`} type="number" step="1" bind:value={row.amount} />
+                            <Label for={`amount-${row.id}`}>Amount (cents)</Label>
+                            <Input id={`amount-${row.id}`} type="number" step="1" bind:value={row.amount} />
                         </div>
                     </div>
 
                     {#if !row.isSplit}
                         <div class="grid gap-3 md:grid-cols-2">
                             <div class="grid gap-1">
-                                <Label for={`category-${index}`}>Category</Label>
+                                <Label for={`category-${row.id}`}>Category</Label>
                                 <select
-                                    id={`category-${index}`}
+                                    id={`category-${row.id}`}
                                     class={selectClass}
                                     bind:value={row.categoryId}
                                 >
@@ -368,9 +431,9 @@
                                 </select>
                             </div>
                             <div class="grid gap-1">
-                                <Label for={`bucket-${index}`}>Bucket</Label>
+                                <Label for={`bucket-${row.id}`}>Bucket</Label>
                                 <select
-                                    id={`bucket-${index}`}
+                                    id={`bucket-${row.id}`}
                                     class={selectClass}
                                     bind:value={row.bucketId}
                                 >
@@ -386,9 +449,9 @@
                             {#each row.splits as split, splitIndex (splitIndex)}
                                 <div class="grid items-end gap-2 md:grid-cols-[1fr_1fr_140px_auto]">
                                     <div class="grid gap-1">
-                                        <Label for={`split-bucket-${index}-${splitIndex}`}>Bucket</Label>
+                                        <Label for={`split-bucket-${row.id}-${splitIndex}`}>Bucket</Label>
                                         <select
-                                            id={`split-bucket-${index}-${splitIndex}`}
+                                            id={`split-bucket-${row.id}-${splitIndex}`}
                                             class={selectClass}
                                             bind:value={split.bucket_id}
                                         >
@@ -399,9 +462,9 @@
                                         </select>
                                     </div>
                                     <div class="grid gap-1">
-                                        <Label for={`split-category-${index}-${splitIndex}`}>Category</Label>
+                                        <Label for={`split-category-${row.id}-${splitIndex}`}>Category</Label>
                                         <select
-                                            id={`split-category-${index}-${splitIndex}`}
+                                            id={`split-category-${row.id}-${splitIndex}`}
                                             class={selectClass}
                                             bind:value={split.category_id}
                                         >
@@ -412,9 +475,9 @@
                                         </select>
                                     </div>
                                     <div class="grid gap-1">
-                                        <Label for={`split-amount-${index}-${splitIndex}`}>Amount</Label>
+                                        <Label for={`split-amount-${row.id}-${splitIndex}`}>Amount</Label>
                                         <Input
-                                            id={`split-amount-${index}-${splitIndex}`}
+                                            id={`split-amount-${row.id}-${splitIndex}`}
                                             type="number"
                                             step="1"
                                             bind:value={split.amount}
