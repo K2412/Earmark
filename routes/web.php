@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Household\AccountController;
 use App\Http\Controllers\Household\DashboardController;
+use App\Http\Controllers\Household\GoalController;
 use App\Http\Controllers\Household\ImportController;
 use App\Http\Controllers\Household\MemberController;
 use App\Http\Controllers\Household\NetWorthController;
@@ -69,6 +70,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/household/recurring', [RecurringController::class, 'index'])->name('household.recurring.index');
     Route::post('/household/recurring', [RecurringController::class, 'store'])->name('household.recurring.store');
     Route::patch('/household/recurring/{recurringSchedule}', [RecurringController::class, 'update'])->name('household.recurring.update');
+
+    Route::get('/household/goals', [GoalController::class, 'index'])->name('household.goals.index');
+    Route::post('/household/goals', [GoalController::class, 'store'])->name('household.goals.store');
+    Route::post('/household/goals/reorder', [GoalController::class, 'reorder'])->name('household.goals.reorder');
+    Route::patch('/household/goals/{goal}', [GoalController::class, 'update'])->name('household.goals.update');
+    Route::delete('/household/goals/{goal}', [GoalController::class, 'destroy'])->name('household.goals.destroy');
 
     Route::get('/household/reconcile', [ReconciliationController::class, 'index'])->name('household.reconcile.index');
     Route::post('/household/reconcile/preview', [ReconciliationController::class, 'preview'])->name('household.reconcile.preview');
