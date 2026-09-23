@@ -26,6 +26,7 @@ class Transaction extends Model
         'is_split',
         'cleared',
         'reviewed',
+        'excluded_from_reports',
         'reconciled',
         'transfer_pair_id',
         'source',
@@ -71,6 +72,7 @@ class Transaction extends Model
             'is_split' => 'boolean',
             'cleared' => 'boolean',
             'reviewed' => 'boolean',
+            'excluded_from_reports' => 'boolean',
             'reconciled' => 'boolean',
         ];
     }

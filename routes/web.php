@@ -5,6 +5,7 @@ use App\Http\Controllers\Household\DashboardController;
 use App\Http\Controllers\Household\ImportController;
 use App\Http\Controllers\Household\MemberController;
 use App\Http\Controllers\Household\NetWorthController;
+use App\Http\Controllers\Household\PayeeRuleController;
 use App\Http\Controllers\Household\PlanController;
 use App\Http\Controllers\Household\TransactionController;
 use App\Http\Controllers\Household\TransferController;
@@ -46,6 +47,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/household/import/{statementUpload}/review', [ImportController::class, 'review'])->name('household.import.review');
     Route::patch('/household/import/{statementUpload}/staged', [ImportController::class, 'updateStaged'])->name('household.import.staged.update');
     Route::post('/household/import/{statementUpload}/promote', [ImportController::class, 'promote'])->name('household.import.promote');
+
+    Route::get('/household/rules', [PayeeRuleController::class, 'index'])->name('household.rules.index');
+    Route::post('/household/rules', [PayeeRuleController::class, 'store'])->name('household.rules.store');
+    Route::post('/household/rules/preview', [PayeeRuleController::class, 'preview'])->name('household.rules.preview');
+    Route::post('/household/rules/reorder', [PayeeRuleController::class, 'reorder'])->name('household.rules.reorder');
+    Route::patch('/household/rules/{payeeRule}', [PayeeRuleController::class, 'update'])->name('household.rules.update');
+    Route::delete('/household/rules/{payeeRule}', [PayeeRuleController::class, 'destroy'])->name('household.rules.destroy');
+    Route::post('/household/rules/{payeeRule}/apply', [PayeeRuleController::class, 'apply'])->name('household.rules.apply');
 
     Route::get('/household/transfers', [TransferController::class, 'index'])->name('household.transfers.index');
     Route::post('/household/transfers', [TransferController::class, 'store'])->name('household.transfers.store');
