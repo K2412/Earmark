@@ -16,22 +16,18 @@ class SnapshotService
     public const STALE_AFTER_DAYS = 90;
 
     /**
+     * @param  array{owner_user_id?: ?string, purpose?: ?string}  $filters
      * @return array<string, mixed>
      */
-    public function forHousehold(Household $household, ?CarbonImmutable $asOf = null): array
+    public function forHousehold(Household $household, ?CarbonImmutable $asOf = null, array $filters = []): array
     {
         $asOf ??= CarbonImmutable::now();
         $staleBefore = $asOf->subDays(self::STALE_AFTER_DAYS)->toDateString();
 
-        $positions = $household->financialPositions()
-            ->where('archived', false)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->with(['valuations', 'owner'])
-            ->get();
+        $positions = $this->positions($household, $filters);
 
-        $rows = $positions->map(function (FinancialPosition $position) {
-            $valuation = $this->latestValuation($position);
+        $rows = $positions->map(function (FinancialPosition $position) use ($asOf) {
+            $valuation = $this->latestValuation($position, $asOf);
 
             return [
                 'position' => $position,
@@ -128,14 +124,76 @@ class SnapshotService
             ->sum(fn (array $row) => abs($row['signed_cents']));
     }
 
-    private function latestValuation(FinancialPosition $position): ?Valuation
+    /**
+     * The most recent non-archived valuation on or before the as-of date, so
+     * historical snapshots reconcile to the selected date.
+     */
+    private function latestValuation(FinancialPosition $position, CarbonImmutable $asOf): ?Valuation
     {
         return $position->valuations
+            ->reject(fn (Valuation $valuation) => $valuation->archived)
+            ->filter(fn (Valuation $valuation) => $valuation->valued_at !== null
+                && $valuation->valued_at->toDateString() <= $asOf->toDateString())
             ->sortBy([
                 ['valued_at', 'desc'],
                 ['id', 'desc'],
             ])
             ->first();
+    }
+
+    /**
+     * @param  array{owner_user_id?: ?string, purpose?: ?string}  $filters
+     * @return Collection<int, FinancialPosition>
+     */
+    private function positions(Household $household, array $filters = []): Collection
+    {
+        return $household->financialPositions()
+            ->where('archived', false)
+            ->when(! empty($filters['owner_user_id']), fn ($q) => $q->where('owner_user_id', $filters['owner_user_id']))
+            ->when(! empty($filters['purpose']), fn ($q) => $q->where('purpose', $filters['purpose']))
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->with(['valuations', 'owner'])
+            ->get();
+    }
+
+    /**
+     * A month-end net-worth trend for the last N months, preserving the
+     * investable / home-equity / home-purchase distinctions at each point.
+     *
+     * @param  array{owner_user_id?: ?string, purpose?: ?string}  $filters
+     * @return list<array{date: string, investable_cents: int, home_equity_cents: int, home_purchase_cents: int, total_net_worth_cents: int}>
+     */
+    public function history(Household $household, int $months = 12, array $filters = []): array
+    {
+        $positions = $this->positions($household, $filters);
+        $now = CarbonImmutable::now();
+        $series = [];
+
+        for ($i = $months - 1; $i >= 0; $i--) {
+            $asOf = $now->subMonths($i)->endOfMonth();
+
+            $rows = $positions->map(fn (FinancialPosition $position): array => [
+                'position' => $position,
+                'valuation' => $this->latestValuation($position, $asOf),
+                'signed_cents' => $this->signedCents($position, $this->latestValuation($position, $asOf)),
+            ]);
+
+            $homeAssets = $this->sumAssets($rows, PositionPurpose::PrimaryResidence);
+            $homeLiabilities = $this->sumLiabilities($rows, PositionPurpose::PrimaryResidence);
+            $totalAssets = $rows->filter(fn (array $row) => $row['position']->classification === PositionClassification::Asset)->sum('signed_cents');
+            $totalLiabilities = $rows->filter(fn (array $row) => $row['position']->classification === PositionClassification::Liability)->sum(fn (array $row) => abs($row['signed_cents']));
+
+            $series[] = [
+                'date' => $asOf->toDateString(),
+                'investable_cents' => $this->sumAssets($rows, PositionPurpose::Investable),
+                'home_purchase_cents' => $this->sumAssets($rows, PositionPurpose::HomePurchase),
+                'home_equity_cents' => $homeAssets - $homeLiabilities,
+                'total_net_worth_cents' => $totalAssets - $totalLiabilities,
+            ];
+        }
+
+        return $series;
     }
 
     private function signedCents(FinancialPosition $position, ?Valuation $valuation): int

@@ -77,6 +77,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/household/net-worth', [NetWorthController::class, 'show'])->name('household.net-worth.show');
     Route::post('/household/net-worth/positions', [NetWorthController::class, 'storePosition'])->name('household.net-worth.positions.store');
     Route::post('/household/net-worth/positions/{position}/valuations', [NetWorthController::class, 'storeValuation'])->name('household.net-worth.valuations.store');
+    Route::patch('/household/net-worth/valuations/{valuation}', [NetWorthController::class, 'updateValuation'])->name('household.net-worth.valuations.update');
+    Route::post('/household/net-worth/valuations/{valuation}/archive', [NetWorthController::class, 'archiveValuation'])->name('household.net-worth.valuations.archive');
     Route::post('/household/net-worth/plan', [NetWorthController::class, 'storePlan'])->name('household.net-worth.plan.store');
 
     Route::get('/household/members', [MemberController::class, 'index'])->name('household.members.index');

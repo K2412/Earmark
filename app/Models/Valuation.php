@@ -17,6 +17,7 @@ class Valuation extends Model
         'financial_position_id',
         'amount',
         'valued_at',
+        'archived',
         'created_by_user_id',
     ];
 
@@ -28,6 +29,7 @@ class Valuation extends Model
         return [
             'amount' => 'integer',
             'valued_at' => 'date',
+            'archived' => 'boolean',
         ];
     }
 
