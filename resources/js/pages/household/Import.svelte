@@ -47,6 +47,9 @@
     let headers = $state<string[]>([]);
     let rawRows = $state<string[][]>([]);
     let fileError = $state<string | null>(null);
+    let importKind = $state<'csv' | 'structured' | null>(null);
+    let structuredSource = $state<'ofx' | 'qfx' | 'qbo' | 'qif' | null>(null);
+    let structuredContent = $state('');
 
     let mapping = $state<Mapping>({
         dateIndex: -1,
@@ -74,34 +77,60 @@
         event: Event & { currentTarget: HTMLInputElement },
     ): Promise<void> {
         fileError = null;
+        headers = [];
+        rawRows = [];
+        structuredContent = '';
+        structuredSource = null;
+        importKind = null;
+        fileMeta = null;
+
         const file = event.currentTarget.files?.[0];
 
         if (!file) {
             return;
         }
 
+        const ext = file.name.toLowerCase().split('.').pop() ?? '';
+
         try {
             const buffer = await file.arrayBuffer();
             const text = new TextDecoder().decode(buffer);
-            const parsed = parseCsv(text);
 
-            if (parsed.headers.length === 0 || parsed.rows.length === 0) {
-                fileError = 'This file has no data rows.';
-                headers = [];
-                rawRows = [];
-                fileMeta = null;
+            if (ext === 'csv') {
+                const parsed = parseCsv(text);
+
+                if (parsed.headers.length === 0 || parsed.rows.length === 0) {
+                    fileError = 'This file has no data rows.';
+
+                    return;
+                }
+
+                importKind = 'csv';
+                headers = parsed.headers;
+                rawRows = parsed.rows;
+                mapping = { ...mapping, ...guessMapping(headers) };
+                fileMeta = {
+                    name: file.name,
+                    size: file.size,
+                    sha256: await sha256Hex(buffer),
+                };
 
                 return;
             }
 
-            headers = parsed.headers;
-            rawRows = parsed.rows;
-            mapping = { ...mapping, ...guessMapping(headers) };
-            fileMeta = {
-                name: file.name,
-                size: file.size,
-                sha256: await sha256Hex(buffer),
-            };
+            if (ext === 'ofx' || ext === 'qfx' || ext === 'qbo' || ext === 'qif') {
+                // Structured bank exports are self-describing — parsed on the server,
+                // no column mapping needed.
+                importKind = 'structured';
+                structuredSource = ext;
+                structuredContent = text;
+                fileMeta = { name: file.name, size: file.size, sha256: '' };
+
+                return;
+            }
+
+            fileError =
+                'Unsupported file type. Upload a CSV, OFX, QFX, or QIF file.';
         } catch {
             fileError = 'Could not read this file.';
         }
@@ -116,9 +145,11 @@
     const ready = $derived(
         !!fileMeta &&
             accountId !== '' &&
-            mapping.dateIndex >= 0 &&
-            mapping.payeeIndex >= 0 &&
-            amountMapped,
+            (importKind === 'structured' ||
+                (importKind === 'csv' &&
+                    mapping.dateIndex >= 0 &&
+                    mapping.payeeIndex >= 0 &&
+                    amountMapped)),
     );
 
     const previews = $derived(
@@ -151,9 +182,32 @@
             return;
         }
 
-        const rows = rawRows.map((cells) => buildRowPayload(cells, mapping));
-
         processing = true;
+
+        const options = {
+            preserveScroll: true,
+            onError: (formErrors: Record<string, string>) =>
+                (errors = formErrors),
+            onSuccess: () => (errors = {}),
+            onFinish: () => (processing = false),
+        };
+
+        if (importKind === 'structured' && structuredSource) {
+            router.post(
+                ImportController.storeStructured.url(),
+                {
+                    account_id: accountId,
+                    source: structuredSource,
+                    filename: fileMeta.name,
+                    content: structuredContent,
+                },
+                options,
+            );
+
+            return;
+        }
+
+        const rows = rawRows.map((cells) => buildRowPayload(cells, mapping));
 
         router.post(
             ImportController.store.url(),
@@ -168,22 +222,17 @@
                 },
                 rows,
             },
-            {
-                preserveScroll: true,
-                onError: (formErrors) => (errors = formErrors),
-                onSuccess: () => (errors = {}),
-                onFinish: () => (processing = false),
-            },
+            options,
         );
     }
 </script>
 
-<AppHead title="Import CSV" />
+<AppHead title="Import statement" />
 
 <div class="flex flex-col gap-6 p-4">
     <Heading
-        title="Import CSV"
-        description="Map your statement columns, preview the normalized rows, then stage them for review. Nothing reaches the ledger until you promote it."
+        title="Import statement"
+        description="Upload a CSV (map the columns) or an OFX/QFX/QIF bank export (parsed automatically). Preview, then stage for review — nothing reaches the ledger until you promote it."
     />
 
     <ErrorSummary
@@ -211,22 +260,33 @@
         </div>
 
         <div class="grid max-w-lg gap-2">
-            <Label for="file">Statement file (CSV)</Label>
+            <Label for="file">Statement file (CSV, OFX, QFX, QIF)</Label>
             <input
                 id="file"
                 type="file"
-                accept=".csv,text/csv"
+                accept=".csv,text/csv,.ofx,.qfx,.qbo,.qif"
                 onchange={onFileChange}
                 class={selectClass}
                 data-test="import-file"
             />
             {#if fileMeta}
                 <p class="text-sm text-muted-foreground">
-                    {fileMeta.name} · {rawRows.length} rows
+                    {fileMeta.name}{#if importKind === 'csv'} · {rawRows.length} rows{/if}
                 </p>
             {/if}
             <InputError message={fileError ?? undefined} />
         </div>
+
+        {#if importKind === 'structured'}
+            <div
+                class="max-w-lg rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground"
+                data-test="structured-notice"
+            >
+                Structured bank export ({structuredSource?.toUpperCase()}) detected.
+                No column mapping needed — we'll parse it on the server and take
+                you straight to review.
+            </div>
+        {/if}
 
         {#if headers.length > 0}
             <div class="grid gap-4 rounded-xl border p-4 md:grid-cols-2">
@@ -355,7 +415,7 @@
             </div>
         {/if}
 
-        {#if ready}
+        {#if ready && importKind === 'csv'}
             <div class="overflow-x-auto rounded-xl border" data-test="import-preview">
                 <table class="w-full text-sm">
                     <thead class="bg-muted/50 text-left">

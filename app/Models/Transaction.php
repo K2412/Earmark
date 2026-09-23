@@ -32,6 +32,7 @@ class Transaction extends Model
         'transfer_pair_id',
         'source',
         'import_batch_id',
+        'external_id',
         'created_by_user_id',
     ];
 

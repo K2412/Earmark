@@ -99,7 +99,7 @@ class TransactionController extends Controller
             'accounts' => $household->accounts()->where('archived', false)->orderBy('name')->get(['id', 'name']),
             'categories' => $household->categories()->where('archived', false)->orderBy('name')->get(['id', 'name']),
             'buckets' => $household->buckets()->where('archived', false)->orderBy('name')->get(['id', 'name']),
-            'sources' => ['manual', 'imported_csv', 'imported_pdf'],
+            'sources' => ['manual', 'imported_csv', 'imported_ofx', 'imported_qif', 'imported_pdf'],
             'activities' => $activities,
             'members' => $household->members()->get(['users.id', 'users.name'])
                 ->map(fn ($member): array => ['id' => $member->id, 'name' => $member->name]),

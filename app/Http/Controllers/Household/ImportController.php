@@ -8,12 +8,17 @@ use App\Actions\Import\UpdateStatementReview;
 use App\Concerns\ResolvesHousehold;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Household\StoreStatementImportRequest;
+use App\Http\Requests\Household\StoreStructuredStatementImportRequest;
 use App\Http\Requests\Household\UpdateStatementReviewRequest;
 use App\Models\StatementUpload;
 use App\Services\Import\CsvImportNormalizer;
+use App\Services\Import\OfxImportNormalizer;
+use App\Services\Import\QifImportNormalizer;
+use App\Support\Import\NormalizationResult;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,7 +26,11 @@ class ImportController extends Controller
 {
     use ResolvesHousehold;
 
-    public function __construct(private CsvImportNormalizer $normalizer) {}
+    public function __construct(
+        private CsvImportNormalizer $normalizer,
+        private OfxImportNormalizer $ofx,
+        private QifImportNormalizer $qif,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -51,6 +60,47 @@ class ImportController extends Controller
             'parser_version' => CsvImportNormalizer::PARSER_VERSION,
         ], $result->drafts, $request->user(), $household);
 
+        $this->flashStagingResult($upload, $result);
+
+        return to_route('household.import.review', $upload);
+    }
+
+    public function storeStructured(StoreStructuredStatementImportRequest $request, StageStatementImport $action): RedirectResponse
+    {
+        $household = $this->household($request);
+        $validated = $request->validated();
+        $source = $validated['source'];
+
+        $result = $source === 'qif'
+            ? $this->qif->normalize($validated['content'])
+            : $this->ofx->normalize($validated['content']);
+
+        if ($result->drafts === []) {
+            throw ValidationException::withMessages([
+                'content' => __('No transactions found in this file. Check that it is a valid :source export.', ['source' => strtoupper($source)]),
+            ]);
+        }
+
+        $parserVersion = $source === 'qif'
+            ? QifImportNormalizer::PARSER_VERSION
+            : OfxImportNormalizer::PARSER_VERSION;
+
+        $upload = $action->handle([
+            'account_id' => $validated['account_id'],
+            'source' => $source,
+            'original_filename' => $validated['filename'],
+            'file_sha256' => $validated['file_sha256'],
+            'file_size_bytes' => strlen($validated['content']),
+            'parser_version' => $parserVersion,
+        ], $result->drafts, $request->user(), $household);
+
+        $this->flashStagingResult($upload, $result);
+
+        return to_route('household.import.review', $upload);
+    }
+
+    private function flashStagingResult(StatementUpload $upload, NormalizationResult $result): void
+    {
         $duplicates = $upload->stagedTransactions()->where('is_possible_duplicate', true)->count();
 
         Inertia::flash('toast', [
@@ -62,8 +112,6 @@ class ImportController extends Controller
                 'skipped' => count($result->skipped),
             ]),
         ]);
-
-        return to_route('household.import.review', $upload);
     }
 
     public function review(Request $request, StatementUpload $statementUpload): Response

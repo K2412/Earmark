@@ -38,5 +38,5 @@ it('reaches the import page from the transactions page', function () {
     visit('/household/transactions')
         ->click('Import CSV')
         ->assertPathIs('/household/import')
-        ->assertSee('Map your statement columns');
+        ->assertSee('Import statement');
 });

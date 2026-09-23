@@ -21,10 +21,10 @@ php artisan test --compact
 | 1 | Open-source licence + operational docs | ✅ Shipped | `LICENSE` (MIT), `README.md`, `docs/self-hosting.md` (install, upgrade, health, backup, restore, deletion, recovery) | Docs reviewed at release |
 | 2 | Create/edit/archive/reorder/reconcile accounts | ✅ Shipped | `AccountController`, `ReconciliationController` | `Household/AccountLifecycleTest`, `Household/ReconciliationTest`, browser `AccountLifecycleTest`, `ReconcileTest` |
 | 3 | Fast manual transaction entry as first-class | ✅ Shipped | `TransactionController@store` | `Household/TransactionRegisterTest`, browser `TransactionRegisterTest` |
-| 4 | Upload CSV statements | ✅ Shipped | `ImportController`, deterministic CSV parser | `Household/ImportPageTest`, `ImportReviewTest`, browser `ImportPageTest` |
+| 4 | Upload statements (CSV + OFX/QFX/QBO/QIF) | ✅ Shipped | `ImportController` (`store`, `storeStructured`); `CsvImportNormalizer`, `OfxImportNormalizer`, `QifImportNormalizer` | `Household/ImportPageTest`, `ImportReviewTest`, `StructuredImportTest`, `Services/OfxImportNormalizerTest`, `Services/QifImportNormalizerTest`, browser `ImportPageTest`, `StructuredImportTest` |
 | 5 | Local PDF/image scan into draft transactions | ⏸️ Deferred | — | See limitation **L1** below |
 | 6 | Review/correct/split/accept/reject imported rows | ✅ Shipped | `ImportController@review/updateStaged/promote` (staging → atomic promotion) | `Household/ImportReviewTest`, browser `ImportReviewTest` |
-| 7 | Duplicate import/transaction prevention (no silent discards) | ✅ Shipped | Fingerprinting in the staging lifecycle | `Household/ImportReviewTest`, `LedgerIntegrityTest` |
+| 7 | Duplicate import/transaction prevention (no silent discards) | ✅ Shipped | `DuplicateDetector` — content fingerprint, plus exact bank-id (OFX `FITID`) matching when present | `Household/ImportReviewTest`, `StructuredImportTest`, `LedgerIntegrityTest` |
 | 8 | Search/filter/edit/delete/clear/review/split/audit transactions | ✅ Shipped | `TransactionController`, `TransactionActivityLogger` | `Household/TransactionRegisterTest`, `LedgerIntegrityTest`, browser `TransactionRegisterTest` |
 | 9 | Understandable payee rules with previews | ✅ Shipped | `PayeeRuleController`, `PayeeRuleService` | `Household/PayeeRuleManagementTest`, browser `RulesPageTest` |
 | 10 | Transfers & reconciliations preserve balances | ✅ Shipped | `TransferController`, `ReconciliationController` | `Household/TransfersPageTest`, `ReconciliationTest`, `LedgerIntegrityTest` |
