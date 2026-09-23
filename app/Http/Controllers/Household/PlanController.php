@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers\Household;
 
+use App\Actions\Buckets\AssignFunds;
 use App\Actions\Buckets\CreateBucket;
+use App\Actions\Buckets\SetBucketObligation;
 use App\Actions\Categories\CreateCategory;
 use App\Concerns\ResolvesHousehold;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Household\AssignFundsRequest;
+use App\Http\Requests\Household\SetBucketObligationRequest;
 use App\Http\Requests\Household\StoreBucketRequest;
 use App\Http\Requests\Household\StoreCategoryRequest;
 use App\Models\Bucket;
@@ -95,6 +99,27 @@ class PlanController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Category created.')]);
 
         return to_route('household.plan.index', $request->only(['year', 'month']));
+    }
+
+    public function assign(AssignFundsRequest $request, AssignFunds $action): RedirectResponse
+    {
+        $action->handle($request->validated(), $request->user(), $this->household($request));
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Funds moved.')]);
+
+        return to_route('household.plan.index', $request->only(['year', 'month']));
+    }
+
+    public function setObligation(SetBucketObligationRequest $request, Bucket $bucket, SetBucketObligation $action): RedirectResponse
+    {
+        $action->handle($bucket, $request->validated(), $request->user());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Obligation updated.')]);
+
+        return to_route('household.plan.index', [
+            'year' => $request->integer('effective_year'),
+            'month' => $request->integer('effective_month'),
+        ]);
     }
 
     private function cursor(Request $request): CarbonImmutable
