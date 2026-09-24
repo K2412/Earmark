@@ -15,6 +15,7 @@
     import { untrack } from 'svelte';
     import { Link, router } from '@inertiajs/svelte';
     import AppHead from '@/components/AppHead.svelte';
+    import CategoryPill from '@/components/CategoryPill.svelte';
     import FinanceSummary from '@/components/FinanceSummary.svelte';
     import MoneyRow from '@/components/MoneyRow.svelte';
     import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@
 
     type CardKey =
         | 'budget'
+        | 'top_categories'
         | 'review_queue'
         | 'recurring'
         | 'goals'
@@ -54,6 +56,15 @@
             budget: {
                 unassigned: string;
                 underfunded: { id: string; name: string }[];
+            };
+            top_categories: {
+                items: {
+                    name: string;
+                    type: string | null;
+                    spent: string;
+                    ratio: number;
+                }[];
+                total: string;
             };
             review_queue: { count: number };
             recurring: { count: number };
@@ -75,6 +86,7 @@
 
     const cardLabels: Record<CardKey, string> = {
         budget: 'Budget',
+        top_categories: 'Top categories',
         review_queue: 'Review queue',
         recurring: 'Recurring',
         goals: 'Goals',
@@ -228,6 +240,43 @@
                 </Card>
             </div>
         </div>
+    {/if}
+
+    {#if shown('top_categories')}
+        <Card>
+            <CardHeader class="flex flex-row items-center justify-between">
+                <CardTitle class="text-sm font-medium text-muted-foreground">
+                    Top categories
+                </CardTitle>
+                <span class="text-sm text-muted-foreground">
+                    This month · {cards.top_categories.total}
+                </span>
+            </CardHeader>
+            <CardContent class="flex flex-col gap-3">
+                {#if cards.top_categories.items.length === 0}
+                    <p class="text-sm text-muted-foreground">
+                        No spending recorded this month yet.
+                    </p>
+                {:else}
+                    {#each cards.top_categories.items as item (item.name)}
+                        <div class="flex items-center gap-3">
+                            <div class="w-40 shrink-0">
+                                <CategoryPill name={item.name} type={item.type} />
+                            </div>
+                            <div class="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                                <div
+                                    class="h-full rounded-full bg-primary"
+                                    style="width: {Math.round(item.ratio * 100)}%"
+                                ></div>
+                            </div>
+                            <span class="w-24 shrink-0 text-right font-mono text-sm">
+                                {item.spent}
+                            </span>
+                        </div>
+                    {/each}
+                {/if}
+            </CardContent>
+        </Card>
     {/if}
 
     {#if shown('net_worth')}
