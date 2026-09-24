@@ -18,7 +18,6 @@
     import ErrorSummary from '@/components/ErrorSummary.svelte';
     import Heading from '@/components/Heading.svelte';
     import InputError from '@/components/InputError.svelte';
-    import { Badge } from '@/components/ui/badge';
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
@@ -127,12 +126,19 @@
                     <th class="px-4 py-3 text-right font-medium">Rolled-fwd</th>
                     <th class="px-4 py-3 text-right font-medium">Needed</th>
                     <th class="px-4 py-3 text-right font-medium">Available</th>
-                    <th class="px-4 py-3 font-medium">Status</th>
+                    <th class="px-4 py-3 font-medium">Funded</th>
                 </tr>
             </thead>
             <tbody>
                 {#each plan.rows as row (row.id)}
                     {@const status = plan.statusFor(row)}
+                    {@const funded =
+                        row.needed_cents > 0
+                            ? Math.max(
+                                  0,
+                                  Math.min(1, row.available_cents / row.needed_cents),
+                              )
+                            : 1}
                     <tr class="border-t">
                         <td class="px-4 py-3">{row.name}</td>
                         <td class="px-4 py-3 text-right tabular-nums">
@@ -155,13 +161,30 @@
                             {row.available}
                         </td>
                         <td class="px-4 py-3">
-                            <Badge
-                                variant={status === 'OK'
-                                    ? 'secondary'
-                                    : 'destructive'}
-                            >
-                                {status}
-                            </Badge>
+                            <div class="flex items-center gap-2">
+                                <div
+                                    class="h-2 w-28 shrink-0 overflow-hidden rounded-full bg-muted"
+                                >
+                                    <div
+                                        class="h-full rounded-full {status ===
+                                        'Negative'
+                                            ? 'bg-destructive'
+                                            : status === 'Underfunded'
+                                              ? 'bg-amber-500'
+                                              : 'bg-emerald-500'}"
+                                        style="width: {Math.round(funded * 100)}%"
+                                    ></div>
+                                </div>
+                                {#if status !== 'OK'}
+                                    <span
+                                        class="text-xs {status === 'Negative'
+                                            ? 'text-destructive'
+                                            : 'text-amber-600'}"
+                                    >
+                                        {status}
+                                    </span>
+                                {/if}
+                            </div>
                         </td>
                     </tr>
                 {/each}
