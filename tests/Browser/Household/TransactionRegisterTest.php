@@ -36,6 +36,28 @@ it('edits a transaction from the register', function () {
     $this->assertDatabaseHas('transaction_activities', ['action' => 'updated']);
 });
 
+it('creates a category inline from the edit modal', function () {
+    $user = actingAsOwner();
+    browserTransaction($user, ['payee' => 'Paycheck', 'amount' => 500000]);
+
+    visit('/household/transactions')
+        ->click('@edit-row')
+        ->assertSee('Edit transaction')
+        ->click('@edit-new-category')
+        ->assertSee('Create a category')
+        ->fill('@new-category-name', 'Salary')
+        ->select('@new-category-type', 'income')
+        ->click('@new-category-save')
+        ->assertDontSee('Create a category')
+        ->assertNoJavaScriptErrors();
+
+    $this->assertDatabaseHas('categories', [
+        'household_id' => $user->household()->id,
+        'name' => 'Salary',
+        'type' => 'income',
+    ]);
+});
+
 it('opens the edit panel from a populated register', function () {
     $user = actingAsOwner();
 

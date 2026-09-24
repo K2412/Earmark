@@ -17,6 +17,7 @@
     import SquarePen from '@lucide/svelte/icons/square-pen';
     import Trash2 from '@lucide/svelte/icons/trash-2';
     import UserPlus from '@lucide/svelte/icons/user-plus';
+    import CategoryController from '@/actions/App/Http/Controllers/Household/CategoryController';
     import TransactionController from '@/actions/App/Http/Controllers/Household/TransactionController';
     import ActionableEmptyState from '@/components/ActionableEmptyState.svelte';
     import AppHead from '@/components/AppHead.svelte';
@@ -234,6 +235,67 @@
             cleared: row.cleared,
             reviewed: row.reviewed,
         };
+    }
+
+    const CATEGORY_TYPES = [
+        'income',
+        'housing',
+        'transportation',
+        'food',
+        'household',
+        'personal',
+        'health',
+        'debt',
+        'savings',
+        'fees',
+        'other',
+    ] as const;
+
+    let showNewCategory = $state(false);
+    let newCategoryName = $state('');
+    let newCategoryType = $state<(typeof CATEGORY_TYPES)[number]>('other');
+    let creatingCategory = $state(false);
+    let newCategoryError = $state<string | null>(null);
+
+    function openNewCategory(): void {
+        newCategoryName = '';
+        newCategoryType = 'other';
+        newCategoryError = null;
+        showNewCategory = true;
+    }
+
+    // Create a category inline and select it on the transaction being edited.
+    // preserveState keeps the edit modal open; the refreshed categories prop carries
+    // the new option, which we then match by name.
+    function createCategory(): void {
+        creatingCategory = true;
+        newCategoryError = null;
+        const createdName = newCategoryName;
+
+        router.post(
+            CategoryController.store.url(),
+            { name: newCategoryName, type: newCategoryType },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => {
+                    const match = categories.find((c) => c.name === createdName);
+
+                    if (match) {
+                        editForm.category_id = match.id;
+                    }
+
+                    showNewCategory = false;
+                },
+                onError: (formErrors) => {
+                    newCategoryError =
+                        formErrors.name ??
+                        formErrors.type ??
+                        'Could not create the category.';
+                },
+                onFinish: () => (creatingCategory = false),
+            },
+        );
     }
 
     function saveEdit(): void {
@@ -641,7 +703,18 @@
                 <InputError message={editErrors.payee} />
             </div>
             <div class="grid gap-2">
-                <Label for="edit-category">Category</Label>
+                <div class="flex items-center justify-between">
+                    <Label for="edit-category">Category</Label>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onclick={openNewCategory}
+                        data-test="edit-new-category"
+                    >
+                        + New category
+                    </Button>
+                </div>
                 <select id="edit-category" class={selectClass} bind:value={editForm.category_id}>
                     <option value="">(none)</option>
                     {#each categories as category (category.id)}
@@ -720,6 +793,55 @@
             <DialogFooter>
                 <Button type="button" variant="ghost" onclick={() => (editingId = null)}>Cancel</Button>
                 <Button type="button" onclick={saveEdit} data-test="save-edit">Save</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
+    <Dialog bind:open={showNewCategory}>
+        <DialogContent>
+            <DialogTitle>Create a category</DialogTitle>
+            <div class="mt-4 flex flex-col gap-4">
+                <div class="grid gap-1">
+                    <Label for="new-category-name">Name</Label>
+                    <Input
+                        id="new-category-name"
+                        bind:value={newCategoryName}
+                        placeholder="e.g. Streaming"
+                        data-test="new-category-name"
+                    />
+                </div>
+                <div class="grid gap-1">
+                    <Label for="new-category-type">Type</Label>
+                    <select
+                        id="new-category-type"
+                        class={selectClass}
+                        bind:value={newCategoryType}
+                        data-test="new-category-type"
+                    >
+                        {#each CATEGORY_TYPES as type (type)}
+                            <option value={type}>{type}</option>
+                        {/each}
+                    </select>
+                </div>
+                <InputError message={newCategoryError ?? undefined} />
+            </div>
+            <DialogFooter>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    onclick={() => (showNewCategory = false)}
+                    disabled={creatingCategory}
+                >
+                    Cancel
+                </Button>
+                <Button
+                    type="button"
+                    onclick={createCategory}
+                    disabled={creatingCategory || newCategoryName.trim() === ''}
+                    data-test="new-category-save"
+                >
+                    {creatingCategory ? 'Creating…' : 'Create category'}
+                </Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
