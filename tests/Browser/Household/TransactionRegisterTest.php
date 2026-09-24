@@ -39,8 +39,8 @@ it('edits a transaction from the register', function () {
 it('opens the edit panel from a populated register', function () {
     $user = actingAsOwner();
 
-    // A full page of rows pushes the edit panel below the fold; opening it must still
-    // bring it into view rather than appearing to do nothing.
+    // Edit opens a centered modal, so it must be reachable regardless of how many
+    // rows precede the clicked one.
     foreach (range(1, 20) as $i) {
         browserTransaction($user, ['payee' => "Merchant {$i}", 'amount' => -100 * $i]);
     }

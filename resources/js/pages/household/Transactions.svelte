@@ -13,7 +13,7 @@
 
 <script lang="ts">
     import { Form, Link, router } from '@inertiajs/svelte';
-    import { tick, untrack } from 'svelte';
+    import { untrack } from 'svelte';
     import TransactionController from '@/actions/App/Http/Controllers/Household/TransactionController';
     import ActionableEmptyState from '@/components/ActionableEmptyState.svelte';
     import AppHead from '@/components/AppHead.svelte';
@@ -21,6 +21,12 @@
     import Heading from '@/components/Heading.svelte';
     import InputError from '@/components/InputError.svelte';
     import { Button } from '@/components/ui/button';
+    import {
+        Dialog,
+        DialogContent,
+        DialogFooter,
+        DialogTitle,
+    } from '@/components/ui/dialog';
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
     import { toUrl } from '@/lib/utils';
@@ -114,7 +120,6 @@
     let showActivity = $state(false);
     let selected = $state<Set<string>>(new Set());
     let editingId = $state<string | null>(null);
-    let editPanel = $state<HTMLElement | null>(null);
 
     const selectClass =
         'flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm';
@@ -207,7 +212,7 @@
     });
     let editErrors = $state<Record<string, string>>({});
 
-    async function startEdit(row: Row): Promise<void> {
+    function startEdit(row: Row): void {
         editingId = row.id;
         editErrors = {};
         splitMode = false;
@@ -224,11 +229,6 @@
             cleared: row.cleared,
             reviewed: row.reviewed,
         };
-
-        // The edit panel renders below the table, so bring it into view — otherwise
-        // clicking Edit on a long page looks like nothing happened.
-        await tick();
-        editPanel?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     function saveEdit(): void {
@@ -569,13 +569,17 @@
         </div>
     {/if}
 
-    {#if editingId !== null}
-        <div
-            bind:this={editPanel}
-            class="max-w-lg space-y-4 rounded-xl border p-4"
-            data-test="edit-transaction"
-        >
-            <h2 class="font-semibold">Edit transaction</h2>
+    <Dialog
+        open={editingId !== null}
+        onOpenChange={(value) => {
+            if (!value) {
+                editingId = null;
+            }
+        }}
+    >
+        <DialogContent class="max-h-[85vh] overflow-y-auto">
+            <DialogTitle>Edit transaction</DialogTitle>
+            <div class="mt-4 space-y-4" data-test="edit-transaction">
             <ErrorSummary
                 errors={Object.entries(editErrors).map(([fieldId, message]) => ({ fieldId, message }))}
             />
@@ -674,12 +678,13 @@
                 {/if}
             </div>
 
-            <div class="flex justify-end gap-2">
+            </div>
+            <DialogFooter>
                 <Button type="button" variant="ghost" onclick={() => (editingId = null)}>Cancel</Button>
                 <Button type="button" onclick={saveEdit} data-test="save-edit">Save</Button>
-            </div>
-        </div>
-    {/if}
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 
     {#if showForm}
         <Form
