@@ -475,6 +475,20 @@
                         </p>
                     {/if}
 
+                    <div class="flex items-baseline justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="truncate font-medium">{row.payee || '—'}</p>
+                            <p class="text-xs text-muted-foreground">{row.date}</p>
+                        </div>
+                        <span
+                            class="shrink-0 font-mono {Number(row.amount) > 0
+                                ? 'text-emerald-600'
+                                : ''}"
+                        >
+                            {formatCents(Number(row.amount))}
+                        </span>
+                    </div>
+
                     <div class="grid gap-3 md:grid-cols-4">
                         <div class="grid gap-1">
                             <Label for={`date-${row.id}`}>Date</Label>
