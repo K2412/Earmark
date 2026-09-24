@@ -67,6 +67,7 @@ class TransactionController extends Controller
                 'payee' => $transaction->payee,
                 'category_id' => $transaction->category_id,
                 'category' => $transaction->category?->name ?? ($transaction->is_split ? __('(split)') : null),
+                'category_type' => $transaction->category?->type ?? ($transaction->is_split ? 'other' : null),
                 'bucket_id' => $transaction->bucket_id,
                 'bucket' => $transaction->bucket?->name ?? ($transaction->is_split ? __('(split)') : null),
                 'amount' => $transaction->amount,
