@@ -14,9 +14,13 @@
 <script lang="ts">
     import { Form, Link, router } from '@inertiajs/svelte';
     import { untrack } from 'svelte';
+    import SquarePen from '@lucide/svelte/icons/square-pen';
+    import Trash2 from '@lucide/svelte/icons/trash-2';
+    import UserPlus from '@lucide/svelte/icons/user-plus';
     import TransactionController from '@/actions/App/Http/Controllers/Household/TransactionController';
     import ActionableEmptyState from '@/components/ActionableEmptyState.svelte';
     import AppHead from '@/components/AppHead.svelte';
+    import CategoryPill from '@/components/CategoryPill.svelte';
     import ErrorSummary from '@/components/ErrorSummary.svelte';
     import Heading from '@/components/Heading.svelte';
     import InputError from '@/components/InputError.svelte';
@@ -48,6 +52,7 @@
         payee: string;
         category_id: string | null;
         category: string | null;
+        category_type: string | null;
         bucket_id: string | null;
         bucket: string | null;
         amount: number;
@@ -508,10 +513,19 @@
                             </td>
                             <td class="px-4 py-3">{transaction.date}</td>
                             <td class="px-4 py-3">{transaction.account ?? '—'}</td>
-                            <td class="px-4 py-3">{transaction.payee}</td>
-                            <td class="px-4 py-3">{transaction.category ?? '—'}</td>
-                            <td class="px-4 py-3">{transaction.bucket ?? '—'}</td>
-                            <td class="px-4 py-3 text-right font-mono">{transaction.amount_formatted}</td>
+                            <td class="px-4 py-3 font-medium">{transaction.payee}</td>
+                            <td class="px-4 py-3">
+                                <CategoryPill
+                                    name={transaction.category}
+                                    type={transaction.category_type}
+                                />
+                            </td>
+                            <td class="px-4 py-3 text-muted-foreground">{transaction.bucket ?? '—'}</td>
+                            <td
+                                class="px-4 py-3 text-right font-mono {transaction.amount > 0
+                                    ? 'text-emerald-600'
+                                    : ''}"
+                            >{transaction.amount_formatted}</td>
                             <td class="px-4 py-3">
                                 <span class="flex gap-1 text-xs">
                                     {#if transaction.cleared}
@@ -528,15 +542,39 @@
                                 </span>
                             </td>
                             <td class="px-4 py-3">
-                                <div class="flex justify-end gap-2">
-                                    <Button type="button" variant="ghost" onclick={() => startEdit(transaction)}>
-                                        Edit
+                                <div class="flex justify-end gap-1">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label="Edit"
+                                        title="Edit"
+                                        onclick={() => startEdit(transaction)}
+                                        data-test="edit-row"
+                                    >
+                                        <SquarePen class="size-4" />
                                     </Button>
-                                    <Button type="button" variant="ghost" onclick={() => assignToMe(transaction)} data-test="assign-to-me">
-                                        Assign me
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label="Assign to me"
+                                        title="Assign to me"
+                                        onclick={() => assignToMe(transaction)}
+                                        data-test="assign-to-me"
+                                    >
+                                        <UserPlus class="size-4" />
                                     </Button>
-                                    <Button type="button" variant="ghost" onclick={() => destroy(transaction)}>
-                                        Delete
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label="Delete"
+                                        title="Delete"
+                                        onclick={() => destroy(transaction)}
+                                        data-test="delete-row"
+                                    >
+                                        <Trash2 class="size-4 text-red-600" />
                                     </Button>
                                 </div>
                             </td>

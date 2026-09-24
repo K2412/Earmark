@@ -26,7 +26,7 @@ it('edits a transaction from the register', function () {
 
     visit('/household/transactions')
         ->assertSee('Old Payee')
-        ->click('Edit')
+        ->click('@edit-row')
         ->fill('edit-payee', 'New Payee')
         ->click('@save-edit')
         ->assertSee('New Payee')
@@ -46,7 +46,7 @@ it('opens the edit panel from a populated register', function () {
     }
 
     visit('/household/transactions')
-        ->click('Edit')
+        ->click('@edit-row')
         ->assertSee('Edit transaction')
         ->fill('edit-payee', 'Edited From List')
         ->click('@save-edit')
