@@ -527,19 +527,19 @@
                                     : ''}"
                             >{transaction.amount_formatted}</td>
                             <td class="px-4 py-3">
-                                <span class="flex gap-1 text-xs">
+                                <div class="flex flex-col items-start gap-1 text-xs">
                                     {#if transaction.cleared}
-                                        <span class="rounded-full bg-sky-100 px-2 py-0.5 text-sky-800">Cleared</span>
+                                        <span class="whitespace-nowrap rounded-full bg-sky-100 px-2 py-0.5 text-sky-800">Cleared</span>
                                     {/if}
                                     {#if transaction.reviewed}
-                                        <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800">Reviewed</span>
+                                        <span class="whitespace-nowrap rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800">Reviewed</span>
                                     {:else}
-                                        <span class="rounded-full bg-amber-100 px-2 py-0.5 text-amber-800">Needs review</span>
+                                        <span class="whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-amber-800">Needs review</span>
                                     {/if}
                                     {#if transaction.assignee}
-                                        <span class="rounded-full bg-violet-100 px-2 py-0.5 text-violet-800">→ {transaction.assignee}</span>
+                                        <span class="whitespace-nowrap rounded-full bg-violet-100 px-2 py-0.5 text-violet-800">→ {transaction.assignee}</span>
                                     {/if}
-                                </span>
+                                </div>
                             </td>
                             <td class="px-4 py-3">
                                 <div class="flex justify-end gap-1">
