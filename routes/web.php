@@ -69,6 +69,7 @@ Route::middleware(['auth', 'verified', EnsureAdvisorReadOnly::class])->group(fun
 
     Route::get('/household/rules', [PayeeRuleController::class, 'index'])->name('household.rules.index');
     Route::post('/household/rules', [PayeeRuleController::class, 'store'])->name('household.rules.store');
+    Route::post('/household/rules/inline', [PayeeRuleController::class, 'storeInline'])->name('household.rules.inline');
     Route::post('/household/rules/preview', [PayeeRuleController::class, 'preview'])->name('household.rules.preview');
     Route::post('/household/rules/reorder', [PayeeRuleController::class, 'reorder'])->name('household.rules.reorder');
     Route::patch('/household/rules/{payeeRule}', [PayeeRuleController::class, 'update'])->name('household.rules.update');
