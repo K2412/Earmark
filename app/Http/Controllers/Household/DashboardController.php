@@ -6,6 +6,7 @@ use App\Concerns\ResolvesHousehold;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Household\UpdateOverviewCardsRequest;
 use App\Models\Bucket;
+use App\Models\Category;
 use App\Models\Goal;
 use App\Models\Holding;
 use App\Models\RecurringSchedule;
@@ -22,7 +23,7 @@ class DashboardController extends Controller
 {
     use ResolvesHousehold;
 
-    public const CARDS = ['budget', 'review_queue', 'recurring', 'goals', 'net_worth', 'investments', 'scenarios'];
+    public const CARDS = ['budget', 'top_categories', 'review_queue', 'recurring', 'goals', 'net_worth', 'investments', 'scenarios'];
 
     public function __construct(
         private BudgetService $budget,
@@ -47,6 +48,43 @@ class DashboardController extends Controller
         $snapshot = $this->snapshot->forHousehold($household);
         $plan = $household->plans()->latest()->first();
 
+        $monthStart = now()->startOfMonth()->toDateString();
+        $monthEnd = now()->endOfMonth()->toDateString();
+
+        $categorySpend = $household->transactions()
+            ->whereNull('transfer_pair_id')
+            ->whereNotNull('category_id')
+            ->where('amount', '<', 0)
+            ->whereBetween('date', [$monthStart, $monthEnd])
+            ->groupBy('category_id')
+            ->selectRaw('category_id, SUM(amount) as total_cents')
+            ->orderByRaw('SUM(amount)')
+            ->limit(6)
+            ->get();
+
+        $categoryNames = Category::query()
+            ->whereIn('id', $categorySpend->pluck('category_id'))
+            ->get(['id', 'name', 'type'])
+            ->keyBy('id');
+
+        $maxSpend = abs((int) ($categorySpend->min('total_cents') ?? 0)) ?: 1;
+        $monthSpendCents = (int) $household->transactions()
+            ->whereNull('transfer_pair_id')
+            ->where('amount', '<', 0)
+            ->whereBetween('date', [$monthStart, $monthEnd])
+            ->sum('amount');
+
+        $topCategories = $categorySpend->map(function ($row) use ($categoryNames, $maxSpend): array {
+            $spent = abs((int) $row->total_cents);
+
+            return [
+                'name' => $categoryNames[$row->category_id]?->name ?? __('Uncategorized'),
+                'type' => $categoryNames[$row->category_id]?->type,
+                'spent' => Money::format($spent),
+                'ratio' => round($spent / $maxSpend, 4),
+            ];
+        })->values();
+
         return Inertia::render('household/Overview', [
             'availableCards' => self::CARDS,
             'enabledCards' => $household->overview_cards ?? self::CARDS,
@@ -54,6 +92,10 @@ class DashboardController extends Controller
                 'budget' => [
                     'unassigned' => Money::format($unassignedAvailable),
                     'underfunded' => $underfunded,
+                ],
+                'top_categories' => [
+                    'items' => $topCategories,
+                    'total' => Money::format(abs($monthSpendCents)),
                 ],
                 'review_queue' => [
                     'count' => $household->transactions()->whereNull('transfer_pair_id')->where('reviewed', false)->count(),
