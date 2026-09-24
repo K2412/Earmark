@@ -13,7 +13,7 @@
 
 <script lang="ts">
     import { Form, Link, router } from '@inertiajs/svelte';
-    import { untrack } from 'svelte';
+    import { tick, untrack } from 'svelte';
     import TransactionController from '@/actions/App/Http/Controllers/Household/TransactionController';
     import ActionableEmptyState from '@/components/ActionableEmptyState.svelte';
     import AppHead from '@/components/AppHead.svelte';
@@ -114,6 +114,7 @@
     let showActivity = $state(false);
     let selected = $state<Set<string>>(new Set());
     let editingId = $state<string | null>(null);
+    let editPanel = $state<HTMLElement | null>(null);
 
     const selectClass =
         'flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm';
@@ -206,7 +207,7 @@
     });
     let editErrors = $state<Record<string, string>>({});
 
-    function startEdit(row: Row): void {
+    async function startEdit(row: Row): Promise<void> {
         editingId = row.id;
         editErrors = {};
         splitMode = false;
@@ -223,6 +224,11 @@
             cleared: row.cleared,
             reviewed: row.reviewed,
         };
+
+        // The edit panel renders below the table, so bring it into view — otherwise
+        // clicking Edit on a long page looks like nothing happened.
+        await tick();
+        editPanel?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     function saveEdit(): void {
@@ -564,7 +570,11 @@
     {/if}
 
     {#if editingId !== null}
-        <div class="max-w-lg space-y-4 rounded-xl border p-4" data-test="edit-transaction">
+        <div
+            bind:this={editPanel}
+            class="max-w-lg space-y-4 rounded-xl border p-4"
+            data-test="edit-transaction"
+        >
             <h2 class="font-semibold">Edit transaction</h2>
             <ErrorSummary
                 errors={Object.entries(editErrors).map(([fieldId, message]) => ({ fieldId, message }))}

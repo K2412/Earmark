@@ -36,6 +36,26 @@ it('edits a transaction from the register', function () {
     $this->assertDatabaseHas('transaction_activities', ['action' => 'updated']);
 });
 
+it('opens the edit panel from a populated register', function () {
+    $user = actingAsOwner();
+
+    // A full page of rows pushes the edit panel below the fold; opening it must still
+    // bring it into view rather than appearing to do nothing.
+    foreach (range(1, 20) as $i) {
+        browserTransaction($user, ['payee' => "Merchant {$i}", 'amount' => -100 * $i]);
+    }
+
+    visit('/household/transactions')
+        ->click('Edit')
+        ->assertSee('Edit transaction')
+        ->fill('edit-payee', 'Edited From List')
+        ->click('@save-edit')
+        ->assertSee('Edited From List')
+        ->assertNoJavaScriptErrors();
+
+    $this->assertDatabaseHas('transactions', ['payee' => 'Edited From List']);
+});
+
 it('filters the register by payee', function () {
     $user = actingAsOwner();
     browserTransaction($user, ['payee' => 'Loblaws Store']);
