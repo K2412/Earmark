@@ -16,6 +16,7 @@
     import { untrack } from 'svelte';
     import CategoryController from '@/actions/App/Http/Controllers/Household/CategoryController';
     import ImportController from '@/actions/App/Http/Controllers/Household/ImportController';
+    import PayeeRuleController from '@/actions/App/Http/Controllers/Household/PayeeRuleController';
     import AppHead from '@/components/AppHead.svelte';
     import ErrorSummary from '@/components/ErrorSummary.svelte';
     import Heading from '@/components/Heading.svelte';
@@ -307,6 +308,80 @@
             },
         );
     }
+
+    let showRuleModal = $state(false);
+    let rulePattern = $state('');
+    let ruleCategoryId = $state('');
+    let ruleBucketId = $state('');
+    let creatingRule = $state(false);
+    let ruleError = $state<string | null>(null);
+
+    function openRuleModal(row: EditRow): void {
+        // Prefill the rule from the row: match on its payee, reuse its category/bucket.
+        rulePattern = row.payee;
+        ruleCategoryId = row.categoryId;
+        ruleBucketId = row.bucketId;
+        ruleError = null;
+        showRuleModal = true;
+    }
+
+    // Apply the just-created rule to the other pending rows in this import so matching
+    // merchants categorize immediately (the reviewer still saves to persist).
+    function applyRuleToPendingRows(): void {
+        const needle = rulePattern.trim().toLowerCase();
+
+        if (needle === '') {
+            return;
+        }
+
+        for (const row of editRows) {
+            if (row.status !== 'pending' || row.isSplit) {
+                continue;
+            }
+
+            if (row.payee.toLowerCase().includes(needle)) {
+                if (ruleCategoryId) {
+                    row.categoryId = ruleCategoryId;
+                }
+
+                if (ruleBucketId) {
+                    row.bucketId = ruleBucketId;
+                }
+            }
+        }
+    }
+
+    function createRule(): void {
+        creatingRule = true;
+        ruleError = null;
+
+        router.post(
+            PayeeRuleController.storeInline.url(),
+            {
+                name: null,
+                pattern: rulePattern,
+                enabled: true,
+                category_id: ruleCategoryId || null,
+                bucket_id: ruleBucketId || null,
+                rename_to: null,
+                hide_from_reports: false,
+                mark_for_review: false,
+                auto_apply: true,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => {
+                    applyRuleToPendingRows();
+                    showRuleModal = false;
+                },
+                onError: (formErrors) => {
+                    ruleError = formErrors.pattern ?? 'Could not create the rule.';
+                },
+                onFinish: () => (creatingRule = false),
+            },
+        );
+    }
 </script>
 
 <AppHead title="Review import" />
@@ -515,6 +590,14 @@
                         <Button type="button" variant="outline" onclick={() => toggleSplit(row)}>
                             {row.isSplit ? 'Remove split' : 'Split'}
                         </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onclick={() => openRuleModal(row)}
+                            data-test="make-rule"
+                        >
+                            Make rule
+                        </Button>
                         <Button type="button" variant="ghost" onclick={() => toggleReject(row)}>
                             {row.status === 'rejected' ? 'Restore' : 'Reject'}
                         </Button>
@@ -593,6 +676,64 @@
                 data-test="new-category-save"
             >
                 {creatingCategory ? 'Creating…' : 'Create category'}
+            </Button>
+        </DialogFooter>
+    </DialogContent>
+</Dialog>
+
+<Dialog bind:open={showRuleModal}>
+    <DialogContent>
+        <DialogTitle>Create a payee rule</DialogTitle>
+        <p class="mt-1 text-sm text-muted-foreground">
+            Any transaction whose payee contains this text gets the category and
+            bucket below, on this and future imports.
+        </p>
+        <div class="mt-4 flex flex-col gap-4">
+            <div class="grid gap-1">
+                <Label for="rule-pattern">When the payee contains</Label>
+                <Input
+                    id="rule-pattern"
+                    bind:value={rulePattern}
+                    placeholder="e.g. NETFLIX"
+                    data-test="rule-pattern"
+                />
+            </div>
+            <div class="grid gap-1">
+                <Label for="rule-category">Category</Label>
+                <select id="rule-category" class={selectClass} bind:value={ruleCategoryId}>
+                    <option value="">(none)</option>
+                    {#each categories as category (category.id)}
+                        <option value={category.id}>{category.name}</option>
+                    {/each}
+                </select>
+            </div>
+            <div class="grid gap-1">
+                <Label for="rule-bucket">Bucket</Label>
+                <select id="rule-bucket" class={selectClass} bind:value={ruleBucketId}>
+                    <option value="">(none)</option>
+                    {#each buckets as bucket (bucket.id)}
+                        <option value={bucket.id}>{bucket.name}</option>
+                    {/each}
+                </select>
+            </div>
+            <InputError message={ruleError ?? undefined} />
+        </div>
+        <DialogFooter>
+            <Button
+                type="button"
+                variant="ghost"
+                onclick={() => (showRuleModal = false)}
+                disabled={creatingRule}
+            >
+                Cancel
+            </Button>
+            <Button
+                type="button"
+                onclick={createRule}
+                disabled={creatingRule || rulePattern.trim() === ''}
+                data-test="rule-save"
+            >
+                {creatingRule ? 'Creating…' : 'Create rule'}
             </Button>
         </DialogFooter>
     </DialogContent>

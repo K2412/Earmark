@@ -69,6 +69,19 @@ class PayeeRuleController extends Controller
         return to_route('household.rules.index');
     }
 
+    /**
+     * Create a rule and return to the caller's page, so screens like the import
+     * review can turn a row into a rule inline without navigating to the Rules page.
+     */
+    public function storeInline(StorePayeeRuleRequest $request, CreatePayeeRule $action): RedirectResponse
+    {
+        $action->handle($request->validated(), $this->household($request));
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Rule created.')]);
+
+        return back();
+    }
+
     public function update(UpdatePayeeRuleRequest $request, PayeeRule $payeeRule, UpdatePayeeRule $action): RedirectResponse
     {
         $action->handle($payeeRule, $request->validated());
